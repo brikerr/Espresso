@@ -246,7 +246,12 @@
   .cap-btn:hover { color: var(--text-secondary); }
   .cap-btn .material-symbols-outlined { font-size: 13px; }
   .cap-btn.recording { color: #E53E3E; animation: recordPulse 1.2s ease-in-out infinite; }
+  .cap-btn.ambiance-on { color: var(--primary); }
   @keyframes recordPulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+  .ambiance-btn {
+    position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  }
 
   .rec-indicator {
     position: absolute; top: 16px; right: 16px; z-index: 40;
@@ -503,6 +508,9 @@
     <div class="legend-item" data-legend="crema" data-tooltip="The golden-brown foam formed by CO2 and oils under pressure. Unique to espresso — indicates freshness and proper extraction."><div class="legend-dot" style="background:#DAA520"></div>Crema</div>
     <div class="legend-item" data-legend="resistance" data-tooltip="Areas where the puck is compacted too tightly, restricting water flow. Over-tamping or uneven distribution creates these dead zones."><div class="legend-dot" style="background:rgba(139,69,19,0.3)"></div>Resistance</div>
     <div class="legend-item" data-legend="phases" data-tooltip="Three time-based extraction phases. Each phase dissolves different compounds — hover over the visualization to explore." style="margin-left:4px; padding-left:12px; border-left:1px solid var(--border)"><div class="legend-dot" style="background:rgba(184,115,51,0.12); border:0.5px solid rgba(184,115,51,0.2)"></div>Phases</div>
+    <div class="ambiance-btn">
+      <button class="cap-btn" id="ambianceBtn"><span class="material-symbols-outlined">coffee</span>Cafe Ambiance</button>
+    </div>
     <div class="capture-btns">
       <button class="cap-btn" id="exportPNG"><span class="material-symbols-outlined">download</span>Export</button>
       <button class="cap-btn" id="recordBtn"><span class="material-symbols-outlined">fiber_manual_record</span>Record</button>
@@ -2175,6 +2183,38 @@ function animate3D() {
 init3D();
 
 // ============================================================
+// CAFE AMBIANCE
+// ============================================================
+var ambianceAudio = new Audio('audio/cafe-ambiance.m4a');
+ambianceAudio.loop = true;
+ambianceAudio.volume = 0.35;
+var ambiancePlaying = false;
+var ambianceBtn = document.getElementById('ambianceBtn');
+
+ambianceBtn.addEventListener('click', function() {
+  if (ambiancePlaying) {
+    stopAmbiance();
+  } else {
+    startAmbiance();
+  }
+});
+
+function startAmbiance() {
+  ambianceAudio.play().catch(function() {});
+  ambiancePlaying = true;
+  ambianceBtn.classList.add('ambiance-on');
+  ambianceBtn.querySelector('.material-symbols-outlined').textContent = 'volume_up';
+}
+
+function stopAmbiance() {
+  ambianceAudio.pause();
+  ambianceAudio.currentTime = 0;
+  ambiancePlaying = false;
+  ambianceBtn.classList.remove('ambiance-on');
+  ambianceBtn.querySelector('.material-symbols-outlined').textContent = 'coffee';
+}
+
+// ============================================================
 // GUIDED TOUR
 // ============================================================
 var tour = {
@@ -2528,6 +2568,10 @@ document.getElementById('recordBtn').addEventListener('click', function() {
 // ============================================================
 function tourStart() {
   if (tour.active) return;
+  // Stop cafe ambiance during narration
+  tour.ambianceWasPlaying = ambiancePlaying;
+  if (ambiancePlaying) stopAmbiance();
+
   tour.savedState = {
     targetGrind: state.targetGrind,
     activeBrew: state.activeBrew,
@@ -2695,6 +2739,9 @@ function tourEnd() {
 
   tour.orbiting = false;
   puck3dContainer.style.opacity = '';
+
+  // Resume cafe ambiance if it was playing before the tour
+  if (tour.ambianceWasPlaying) startAmbiance();
 
   var blurbEl = document.querySelector('.coffee-blurb');
   blurbEl.innerHTML = tour.blurbOriginalHTML;
