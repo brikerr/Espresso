@@ -1,0 +1,2690 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Interactive anatomy of espresso extraction — phases, pressure, temperature, and crema in a top-down portafilter view.">
+<meta name="theme-color" content="#FFFFFF">
+<title>Espresso Extraction Anatomy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+  :root {
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Karla', system-ui, sans-serif;
+    --ease: ease-in-out;
+    --ease-out: ease-out;
+    --dur: 400ms;
+  }
+
+  [data-theme="light"] {
+    --bg: #FFFFFF;
+    --surface: #F5F5F5;
+    --surface-hover: #EBEBEB;
+    --text: #1A1A1A;
+    --text-secondary: #4A4A4A;
+    --text-muted: #757575;
+    --border: rgba(0,0,0,0.13);
+    --border-hover: rgba(0,0,0,0.25);
+    --primary: #B87333;
+    --secondary: #8B6914;
+    --secondary-muted: rgba(139,105,20,0.08);
+    --tertiary: #A0522D;
+    --tertiary-muted: rgba(160,82,45,0.08);
+    --tooltip-bg: #1A1A1A;
+    --tooltip-text: #F5F5F5;
+    --dot-color: rgba(0,0,0,0.05);
+  }
+
+  [data-theme="dark"] {
+    --bg: #111111;
+    --surface: #1A1A1A;
+    --surface-hover: #242424;
+    --text: #E8E8E8;
+    --text-secondary: #9A9A9A;
+    --text-muted: #6A6A6A;
+    --border: rgba(255,255,255,0.10);
+    --border-hover: rgba(255,255,255,0.20);
+    --primary: #D4A574;
+    --secondary: #C9A84C;
+    --secondary-muted: rgba(201,168,76,0.08);
+    --tertiary: #CD853F;
+    --tertiary-muted: rgba(205,133,63,0.06);
+    --tooltip-bg: #E8E8E8;
+    --tooltip-text: #111111;
+    --dot-color: rgba(255,255,255,0.03);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+
+  .page {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    padding: 2px 16px 16px;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 0;
+  }
+
+  .header-text h1 {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(32px, 5vw, 48px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+
+  .theme-btn {
+    position: fixed; top: 12px; right: 12px; z-index: 50;
+    width: 40px; height: 40px;
+    border: none; border-radius: 0;
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+  }
+  .theme-btn:hover { color: var(--text-secondary); background: var(--surface); }
+  .theme-btn .material-symbols-outlined { font-size: 20px; }
+
+  .stats {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 0; justify-content: center;
+  }
+
+  .stat {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 0 24px; height: 38px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    cursor: default;
+    transition: all var(--dur) var(--ease);
+  }
+  .stat:hover { border-bottom-color: var(--border-hover); }
+  .stat .k {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .stat .k::after { content: ''; margin: 0; }
+  .stat .v { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+  .stat.c-primary .v { color: var(--primary); }
+  .stat.c-secondary .v { color: var(--secondary); }
+
+  .tooltip {
+    position: fixed; z-index: 100; max-width: 260px;
+    padding: 10px 14px; border-radius: 0;
+    background: var(--tooltip-bg); color: var(--tooltip-text);
+    font-size: 12.5px; line-height: 1.45;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 180ms var(--ease);
+    border: 1px solid var(--border);
+  }
+  .tooltip.visible { opacity: 1; }
+
+  .viz { flex: 1; min-height: 0; display: flex; align-items: stretch; justify-content: center; position: relative; }
+  canvas { display: block; cursor: crosshair; width: 100%; height: 100%; }
+
+  .phase-tooltip {
+    position: absolute; z-index: 100;
+    max-width: 300px; min-width: 220px;
+    padding: 14px 16px; border-radius: 0;
+    background: var(--tooltip-bg); color: var(--tooltip-text);
+    font-size: 12.5px; line-height: 1.5;
+    pointer-events: none;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+    border: 1px solid var(--border);
+  }
+  .phase-tooltip.visible { opacity: 1; transform: translateY(0); }
+  .phase-tooltip .zt-title {
+    font-weight: 600; font-size: 13px; margin-bottom: 2px;
+    color: var(--tooltip-text);
+  }
+  .phase-tooltip .zt-range {
+    font-size: 11px; opacity: 0.55; margin-bottom: 8px;
+  }
+  .phase-tooltip .zt-item {
+    padding: 2px 0 2px 12px; position: relative; font-size: 12px; line-height: 1.45;
+  }
+  .phase-tooltip .zt-item::before {
+    content: '\2022'; position: absolute; left: 0; opacity: 0.4;
+  }
+  .phase-tooltip .zt-res {
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid rgba(128,128,128,0.15);
+    font-size: 11.5px; font-style: italic; opacity: 0.7;
+  }
+
+  .controls {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; flex-wrap: wrap; padding: 6px 0 2px;
+  }
+
+  .ctrl-label { font-family: var(--font-body); font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
+
+  .btn-group {
+    display: inline-flex; height: 38px;
+    border-radius: 0; border: 1px solid var(--border);
+    overflow: hidden; transition: border-color var(--dur) var(--ease);
+  }
+  .btn-group:hover { border-color: var(--border-hover); }
+
+  .gbtn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 100%; padding: 0 16px; border: none;
+    background: transparent; color: var(--text-muted);
+    font-family: var(--font-body); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 180ms var(--ease);
+    position: relative; -webkit-tap-highlight-color: transparent;
+  }
+  .gbtn + .gbtn::before {
+    content: ''; position: absolute; left: 0; top: 28%; height: 44%;
+    width: 1px; background: var(--border); transition: opacity 180ms;
+  }
+  .gbtn:hover { color: var(--text-secondary); background: var(--surface); }
+  .gbtn.on { color: var(--text); background: transparent; border-bottom: 2px solid var(--text); }
+  .gbtn.on::before, .gbtn.on + .gbtn::before { opacity: 0; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 34px; padding: 0 12px; border-radius: 0;
+    border: 1px solid var(--border); background: transparent;
+    font-family: var(--font-body); font-size: 11px; font-weight: 500;
+    cursor: pointer; transition: all 180ms var(--ease);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chip .material-symbols-outlined { font-size: 16px; }
+  .chip.temp { color: var(--tertiary); }
+  .chip.temp.on { background: transparent; border-color: var(--tertiary); }
+  .chip.temp:not(.on) { color: var(--text-muted); }
+  .chip.crema { color: var(--secondary); }
+  .chip.crema.on { background: transparent; border-color: var(--secondary); }
+  .chip.crema:not(.on) { color: var(--text-muted); }
+  .capture-btns {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    display: flex; gap: 8px;
+  }
+  .cap-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border: none; background: transparent;
+    font-family: var(--font-body); font-size: 10px; font-weight: 500;
+    color: var(--text-muted); cursor: pointer;
+    transition: all 180ms var(--ease);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cap-btn:hover { color: var(--text-secondary); }
+  .cap-btn .material-symbols-outlined { font-size: 13px; }
+  .cap-btn.recording { color: #E53E3E; animation: recordPulse 1.2s ease-in-out infinite; }
+  @keyframes recordPulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+  .rec-indicator {
+    position: absolute; top: 16px; right: 16px; z-index: 40;
+    display: none; align-items: center; gap: 8px;
+    padding: 6px 14px;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    font-family: var(--font-body); font-size: 13px; font-weight: 600;
+    color: #fff;
+  }
+  .rec-indicator .rec-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #E53E3E;
+    animation: recordPulse 1.2s ease-in-out infinite;
+  }
+
+  .legend {
+    display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; padding: 8px 0 0;
+    position: relative;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-family: var(--font-body); font-size: 10px; font-weight: 500;
+    color: var(--text-muted); cursor: default; padding: 4px 8px;
+    border-radius: 0; transition: all 180ms var(--ease);
+    position: relative;
+  }
+  .legend-item:hover { color: var(--text-secondary); background: var(--surface); }
+  .legend-item.dimmed { opacity: 0.25; }
+  .legend-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    user-select: none;
+  }
+
+  #puck3dContainer {
+    position: absolute; bottom: 8px; right: 8px;
+    width: 420px; height: 420px;
+    pointer-events: auto;
+    opacity: 0; animation: rise 800ms ease-in-out 500ms both;
+  }
+  #puck3dContainer canvas { cursor: grab; }
+  #puck3dContainer canvas:active { cursor: grabbing; }
+  .rotate-hint {
+    position: absolute; bottom: -18px; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    font-family: var(--font-body); font-size: 9px; font-weight: 400;
+    color: var(--text-muted); opacity: 0;
+    letter-spacing: 0.3px;
+    animation: hintFade 6s ease-in-out 1.5s both;
+    pointer-events: none;
+  }
+  .rotate-hint .material-symbols-outlined { font-size: 12px; }
+  @keyframes hintFade {
+    0% { opacity: 0; }
+    12% { opacity: 0.5; }
+    70% { opacity: 0.5; }
+    100% { opacity: 0; }
+  }
+
+  .coffee-blurb {
+    position: absolute; bottom: 48px; left: 16px;
+    max-width: 260px;
+    pointer-events: none;
+    opacity: 0; animation: rise 800ms ease-in-out 600ms both;
+  }
+  .coffee-blurb h3 {
+    font-family: var(--font-display); font-weight: 400; font-style: italic;
+    font-size: 15px; color: var(--text-secondary); margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .coffee-blurb p {
+    font-family: var(--font-body); font-size: 10.5px; font-weight: 400;
+    line-height: 1.6; color: var(--text-muted);
+  }
+
+  @keyframes rise {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .tour-btn-fixed {
+    position: fixed; top: 12px; left: 12px; z-index: 50;
+    width: 40px; height: 40px;
+    border: none; border-radius: 0;
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+  }
+  .tour-btn-fixed:hover { color: var(--text-secondary); background: var(--surface); }
+  .tour-btn-fixed .material-symbols-outlined { font-size: 20px; }
+  body.tour-active .tour-btn-fixed { opacity: 0.12; pointer-events: none; }
+
+  body.tour-active .header,
+  body.tour-active .stats,
+  body.tour-active .controls,
+  body.tour-active .legend,
+  body.tour-active .theme-btn {
+    opacity: 0.12; pointer-events: none;
+    transition: opacity 600ms var(--ease);
+  }
+  body.tour-active #puck3dContainer {
+    opacity: 0.15; pointer-events: none;
+    transition: opacity 600ms var(--ease);
+  }
+
+  body.tour-active .tour-spotlight {
+    opacity: 1 !important; pointer-events: none;
+    transition: opacity 400ms var(--ease);
+  }
+
+  body.tour-active .coffee-blurb {
+    opacity: 1 !important; pointer-events: none;
+    transition: opacity 400ms var(--ease);
+  }
+  body.tour-active .coffee-blurb p {
+    font-size: 11px; line-height: 1.65;
+  }
+  .tour-char {
+    display: inline;
+    opacity: 0;
+    filter: blur(3px);
+    transition: opacity 200ms ease-out, filter 280ms ease-out;
+  }
+  .tour-char.revealed {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  .tour-controls {
+    position: absolute; bottom: 60px; right: 16px;
+    display: flex; gap: 8px; z-index: 40;
+    opacity: 0; pointer-events: none;
+    transition: opacity 400ms var(--ease);
+  }
+  body.tour-active .tour-controls { opacity: 1; pointer-events: auto; }
+
+  .tour-ctrl-btn {
+    width: 36px; height: 36px;
+    border: 1px solid rgba(255,255,255,0.3); border-radius: 0;
+    background: rgba(0,0,0,0.4); color: #fff;
+    cursor: pointer; display: grid; place-items: center;
+    backdrop-filter: blur(8px);
+    transition: background 180ms var(--ease);
+  }
+  .tour-ctrl-btn:hover { background: rgba(0,0,0,0.6); }
+  .tour-ctrl-btn .material-symbols-outlined { font-size: 18px; }
+
+  .tour-progress {
+    position: absolute; top: 12px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 6px; z-index: 40;
+    opacity: 0; pointer-events: none;
+    transition: opacity 400ms var(--ease);
+  }
+  body.tour-active .tour-progress { opacity: 1; }
+  .tour-pip {
+    width: 24px; height: 3px;
+    background: rgba(255,255,255,0.2);
+    transition: background 300ms var(--ease), width 300ms var(--ease);
+  }
+  .tour-pip.active { background: rgba(255,255,255,0.8); width: 36px; }
+  .tour-pip.done { background: rgba(255,255,255,0.45); }
+
+  @media (max-width: 600px) {
+    .page { padding: 8px 8px 8px; }
+    .header-text h1 { font-size: 28px; }
+    .stat { height: 30px; padding: 0 12px; }
+    .btn-group { height: 34px; }
+    .gbtn { padding: 0 13px; font-size: 12px; }
+    .chip { height: 30px; padding: 0 10px; font-size: 11px; }
+    #puck3dContainer { width: 220px; height: 220px; }
+    .tour-ctrl-btn { width: 30px; height: 30px; }
+    .tour-ctrl-btn .material-symbols-outlined { font-size: 16px; }
+    .tour-controls { bottom: 48px; right: 10px; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+<button class="theme-btn" id="themeToggle" aria-label="Toggle theme">
+  <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+</button>
+<button class="tour-btn-fixed" id="tourStartBtn" aria-label="Start guided tour">
+  <span class="material-symbols-outlined">auto_stories</span>
+</button>
+<div class="page">
+  <header class="header" style="animation: rise 800ms ease-in-out both; animation-delay: 0ms;">
+    <div class="header-text">
+      <h1>Espresso Extraction Anatomy</h1>
+    </div>
+  </header>
+
+  <div class="stats" style="animation: rise 800ms ease-in-out both; animation-delay: 100ms;">
+    <div class="stat c-primary" id="statTDSPill" data-tooltip="Total Dissolved Solids — the concentration of coffee solubles. Espresso runs 8–12%, far higher than filter methods."><span class="k">TDS</span><span class="v" id="statTDS">~10%</span></div>
+    <div class="stat c-primary" id="statYieldPill" data-tooltip="Extraction yield — the percentage of coffee grounds dissolved. 18–22% is the sweet spot for balanced flavor."><span class="k">Yield</span><span class="v" id="statYield">20%</span></div>
+    <div class="stat c-secondary" id="statDosePill" data-tooltip="The weight of dry coffee grounds in the portafilter basket. Standard espresso uses 18g for a double shot."><span class="k">Dose</span><span class="v" id="statDose">18g</span></div>
+    <div class="stat" id="statRatioPill" data-tooltip="Brew ratio — grams of water per gram of coffee. 1:2 means 36g of liquid from 18g of grounds."><span class="k">Ratio</span><span class="v" id="statRatio">1:2</span></div>
+    <div class="stat" id="statTimePill" data-tooltip="Total shot time from pump start to cut. 25–30 seconds targets optimal extraction for medium roasts."><span class="k">Time</span><span class="v" id="statTime">25–30s</span></div>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <div class="viz" id="canvasContainer" style="animation: rise 800ms ease-in-out both; animation-delay: 200ms;">
+    <canvas id="extraction"></canvas>
+    <div class="phase-tooltip" id="phaseTooltip"></div>
+    <div class="coffee-blurb">
+      <h3>About the process</h3>
+      <p>Every espresso shot is a 25-second chemistry experiment. Water at 93 degrees and 9 bars of pressure dissolves over 1,000 compounds from ground coffee in a precise sequence — bright acids first, then sugars and caramels, and finally bitter tannins. Understanding this sequence lets baristas dial in flavor by adjusting grind, dose, and time to land in the sweet spot between sour under-extraction and bitter over-extraction.</p>
+    </div>
+    <div id="puck3dContainer">
+      <div class="rotate-hint"><span class="material-symbols-outlined">3d_rotation</span>Drag to rotate</div>
+    </div>
+    <div class="tour-controls" id="tourControlsBar">
+      <button class="tour-ctrl-btn" id="tourPauseBtn"><span class="material-symbols-outlined">pause</span></button>
+      <button class="tour-ctrl-btn" id="tourSkipBtn"><span class="material-symbols-outlined">skip_next</span></button>
+      <button class="tour-ctrl-btn" id="tourExitBtn"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="tour-progress" id="tourProgress"></div>
+    <div class="rec-indicator" id="recIndicator"><div class="rec-dot"></div><span id="recCountdown">5s</span></div>
+  </div>
+
+  <div class="controls" style="animation: rise 800ms ease-in-out both; animation-delay: 300ms;">
+    <span class="ctrl-label">Grind</span>
+    <div class="btn-group" id="grindGroup">
+      <button class="gbtn" data-grind="0">Fine</button>
+      <button class="gbtn on" data-grind="1">Med-Fine</button>
+      <button class="gbtn" data-grind="2">Medium</button>
+      <button class="gbtn" data-grind="3">Coarse</button>
+    </div>
+    <button class="chip temp on" id="tempToggle"><span class="material-symbols-outlined">thermostat</span>Temp</button>
+    <button class="chip crema on" id="cremaToggle"><span class="material-symbols-outlined">blur_on</span>Crema</button>
+    <div class="btn-group" id="brewToggle">
+      <button class="gbtn on" data-brew="espresso">Espresso</button>
+      <button class="gbtn" data-brew="pourover">Pour-Over</button>
+      <button class="gbtn" data-brew="aeropress">AeroPress</button>
+      <button class="gbtn" data-brew="frenchpress">French Press</button>
+    </div>
+  </div>
+
+  <div class="legend" id="legendBar" style="animation: rise 800ms ease-in-out both; animation-delay: 400ms;">
+    <div class="legend-item" data-legend="pressure" data-tooltip="The 9-bar water pressure forcing through the coffee puck. This radial gradient shows how pressure distributes from shower screen to basket floor."><div class="legend-dot" style="background:#B87333"></div>Pressure</div>
+    <div class="legend-item" data-legend="flow" data-tooltip="The evenness of water flow across the puck surface. A perfect circle means perfectly even flow — wobbles indicate uneven distribution."><div class="legend-dot" style="background:transparent; border:1px dashed rgba(184,115,51,0.35); box-sizing:border-box"></div>Flow distribution</div>
+    <div class="legend-item" data-legend="channeling" data-tooltip="Paths where water bypasses the coffee puck through cracks or weak spots. Causes uneven extraction — some areas over-extracted, others under."><div class="legend-dot" style="background:#A0522D"></div>Channeling</div>
+    <div class="legend-item" data-legend="temp" data-tooltip="Brew water temperature gradient across the puck. Hotter water (93 C) extracts more aggressively. Temperature drops as water flows through."><div class="legend-dot" style="background:#B84030"></div>Temperature</div>
+    <div class="legend-item" data-legend="crema" data-tooltip="The golden-brown foam formed by CO2 and oils under pressure. Unique to espresso — indicates freshness and proper extraction."><div class="legend-dot" style="background:#DAA520"></div>Crema</div>
+    <div class="legend-item" data-legend="resistance" data-tooltip="Areas where the puck is compacted too tightly, restricting water flow. Over-tamping or uneven distribution creates these dead zones."><div class="legend-dot" style="background:rgba(139,69,19,0.3)"></div>Resistance</div>
+    <div class="legend-item" data-legend="phases" data-tooltip="Three time-based extraction phases. Each phase dissolves different compounds — hover over the visualization to explore." style="margin-left:4px; padding-left:12px; border-left:1px solid var(--border)"><div class="legend-dot" style="background:rgba(184,115,51,0.12); border:0.5px solid rgba(184,115,51,0.2)"></div>Phases</div>
+    <div class="capture-btns">
+      <button class="cap-btn" id="exportPNG"><span class="material-symbols-outlined">download</span>Export</button>
+      <button class="cap-btn" id="recordBtn"><span class="material-symbols-outlined">fiber_manual_record</span>Record</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+var state = {
+  currentGrind: 1, targetGrind: 1,
+  showTemp: true, showCrema: true,
+  flowPulse: 0, cremaPhase: 0,
+  isDark: true,
+  hoveredPhase: 0,
+  highlightedLayer: null,
+  mouseX: 0, mouseY: 0,
+  cx: 0, cy: 0, maxR: 0,
+  activeBrew: 'espresso',
+  animTime1: 10, animTime2: 20, animTime3: 30
+};
+
+var grindConfigs = {
+  0: { phase1End: 0.25, phase2End: 0.55, channeling: 0.80, resistance: 0.15 },
+  1: { phase1End: 0.30, phase2End: 0.62, channeling: 0.45, resistance: 0.08 },
+  2: { phase1End: 0.36, phase2End: 0.68, channeling: 0.20, resistance: 0.04 },
+  3: { phase1End: 0.44, phase2End: 0.76, channeling: 0.08, resistance: 0.01 }
+};
+
+var brewConfigs = {
+  espresso: {
+    tds: '~10%', yield: '20%', dose: '18g', ratio: '1:2', time: '25\u201330s',
+    tdsNum: 10, yieldNum: 20,
+    time1: 10, time2: 20, time3: 30,
+    phaseNames: ['Acids', 'Sugars', 'Bitters'],
+    phaseInfo: {
+      1: {
+        title: 'Phase 1 \u2014 Early Acids',
+        range: '0\u201310 seconds',
+        items: [
+          'Citric acid \u2014 bright, lemony acidity',
+          'Malic acid \u2014 crisp green apple character',
+          'Phosphoric acid \u2014 sparkling, effervescent clarity',
+          'Chlorogenic acids \u2014 antioxidant precursors',
+          'Volatile aromatics \u2014 floral and fruity top notes'
+        ],
+        note: 'First to dissolve \u2014 these set the brightness of the cup'
+      },
+      2: {
+        title: 'Phase 2 \u2014 Sweet Spot',
+        range: '10\u201320 seconds',
+        items: [
+          'Sucrose caramelization \u2014 toffee, caramel sweetness',
+          'Melanoidins \u2014 body, mouthfeel, and brown color',
+          'Maillard compounds \u2014 nutty, toasted bread notes',
+          'Lipids and oils \u2014 silky texture and crema formation',
+          'Balanced acid-sugar harmony \u2014 the sweet spot'
+        ],
+        note: 'The heart of extraction \u2014 most flavor complexity lives here'
+      },
+      3: {
+        title: 'Phase 3 \u2014 Late Bitters',
+        range: '20\u201330+ seconds',
+        items: [
+          'Caffeine \u2014 the familiar bitter alkaloid',
+          'Tannins and polyphenols \u2014 dry, astringent mouthfeel',
+          'Quinic acid \u2014 sharp, medicinal bitterness',
+          'Over-extracted cellulose \u2014 woody, papery notes',
+          'Ashy and burnt notes \u2014 sign of over-extraction'
+        ],
+        note: 'Diminishing returns \u2014 bitterness outpaces sweetness quickly'
+      }
+    },
+    statTooltips: {
+      tds: 'Total Dissolved Solids \u2014 espresso runs 8\u201312%, far higher than filter methods.',
+      yield: 'Extraction yield \u2014 18\u201322% is the sweet spot for balanced flavor.',
+      dose: 'Dry coffee weight in the portafilter. Standard double shot uses 18g.',
+      ratio: 'Brew ratio \u2014 1:2 means 36g liquid from 18g grounds.',
+      time: 'Total shot time. 25\u201330s targets optimal extraction for medium roasts.'
+    },
+    legendPressureTooltip: 'The 9-bar water pressure forcing through the coffee puck. Shows how pressure distributes from shower screen to basket floor.',
+    defaultGrind: 1,
+    puck3d: { radius: 1.8, height: 1.0, screenRadius: 1.9, screenColor: 0x999999, screenOpacity: 0.35 }
+  },
+  pourover: {
+    tds: '~1.3%', yield: '20%', dose: '15g', ratio: '1:15', time: '3:30',
+    tdsNum: 1.3, yieldNum: 20,
+    time1: 60, time2: 150, time3: 210,
+    phaseNames: ['Acids', 'Development', 'Dilution'],
+    phaseInfo: {
+      1: {
+        title: 'Phase 1 \u2014 Bloom & Acids',
+        range: '0\u201360 seconds',
+        items: [
+          'CO\u2082 off-gassing during bloom phase',
+          'Light fruit acids dissolve first',
+          'Citric and tartaric acids dominate',
+          'Floral aromatics at peak intensity',
+          'Brightness establishes cup character'
+        ],
+        note: 'The bloom releases trapped CO\u2082 \u2014 essential for even extraction'
+      },
+      2: {
+        title: 'Phase 2 \u2014 Development',
+        range: '60\u2013150 seconds',
+        items: [
+          'Sugars dissolve steadily as water percolates',
+          'Body and sweetness build gradually',
+          'Melanoidins contribute amber color',
+          'Stone fruit and chocolate notes emerge',
+          'Best balance of acid-to-sweet ratio'
+        ],
+        note: 'Slow percolation extracts more sweetness than pressure methods'
+      },
+      3: {
+        title: 'Phase 3 \u2014 Dilution',
+        range: '150\u2013210 seconds',
+        items: [
+          'Extraction rate drops sharply',
+          'Remaining compounds increasingly bitter',
+          'Total dissolved solids plateau near 1.3%',
+          'Astringency risk if drawdown stalls',
+          'Clean finish depends on grind consistency'
+        ],
+        note: 'The tail end adds body but risks bitterness if over-extended'
+      }
+    },
+    statTooltips: {
+      tds: 'Filter coffee typically measures 1.2\u20131.5%, producing a cleaner, lighter cup.',
+      yield: 'Pour-over targets 18\u201322%. Higher yields risk bitterness.',
+      dose: '15g is standard for a single pour-over serving of ~225ml.',
+      ratio: '1:15 \u2014 15 grams of water per gram of coffee.',
+      time: '3:00\u20134:00 is typical for medium-fine grind V60 or Chemex.'
+    },
+    legendPressureTooltip: 'Gravity-driven percolation through the coffee bed. Much lower pressure than espresso \u2014 relies on contact time instead.',
+    defaultGrind: 2,
+    puck3d: { radius: 1.5, height: 1.6, screenRadius: 1.6, screenColor: 0xCCCCCC, screenOpacity: 0.20 }
+  },
+  aeropress: {
+    tds: '~1.4%', yield: '19%', dose: '15g', ratio: '1:12', time: '2:00',
+    tdsNum: 1.4, yieldNum: 19,
+    time1: 30, time2: 75, time3: 120,
+    phaseNames: ['Acids', 'Body', 'Press'],
+    phaseInfo: {
+      1: {
+        title: 'Phase 1 \u2014 Immersion Acids',
+        range: '0\u201330 seconds',
+        items: [
+          'Rapid initial extraction in hot slurry',
+          'Fruit acids dissolve within seconds',
+          'Brightness peaks during steep phase',
+          'Aromatic volatiles captured under plunger',
+          'pH drops quickly \u2014 high acidity window'
+        ],
+        note: 'Full immersion lets acids extract uniformly \u2014 no channeling risk'
+      },
+      2: {
+        title: 'Phase 2 \u2014 Steep & Develop',
+        range: '30\u201375 seconds',
+        items: [
+          'Sugar extraction accelerates',
+          'Body builds from prolonged contact',
+          'Melanoidins and oils contribute texture',
+          'Nutty, chocolatey mid-tones develop',
+          'Flavor complexity at its richest'
+        ],
+        note: 'Adjust steep time to taste \u2014 longer steeps emphasize body over brightness'
+      },
+      3: {
+        title: 'Phase 3 \u2014 Press & Filter',
+        range: '75\u2013120 seconds',
+        items: [
+          'Plunger pressure forces final extraction',
+          'Paper filter absorbs oils and fines',
+          'Cleaner cup than French press',
+          'Residual bitterness is minimal',
+          'Concentrated but smooth finish'
+        ],
+        note: 'Paper filter removes diterpenes \u2014 resulting in a cleaner, lighter cup'
+      }
+    },
+    statTooltips: {
+      tds: 'AeroPress produces 1.3\u20131.5% TDS, slightly higher than pour-over.',
+      yield: 'AeroPress targets 18\u201320%. Full immersion helps extract evenly.',
+      dose: '15g is a common starting point for standard AeroPress recipes.',
+      ratio: '1:12 \u2014 more concentrated than pour-over, less than espresso.',
+      time: '1:30\u20132:30 total, adjustable based on grind and desired strength.'
+    },
+    legendPressureTooltip: 'Hand-driven plunger pressure through a paper filter. Moderate pressure between espresso and gravity methods.',
+    defaultGrind: 1,
+    puck3d: { radius: 1.4, height: 1.3, screenRadius: 1.45, screenColor: 0xAAAAAA, screenOpacity: 0.30 }
+  },
+  frenchpress: {
+    tds: '~1.2%', yield: '17%', dose: '17g', ratio: '1:15', time: '4:00',
+    tdsNum: 1.2, yieldNum: 17,
+    time1: 90, time2: 180, time3: 240,
+    phaseNames: ['Bloom', 'Immersion', 'Over-steep'],
+    phaseInfo: {
+      1: {
+        title: 'Phase 1 \u2014 Coarse Bloom',
+        range: '0\u201390 seconds',
+        items: [
+          'Coarse grounds release CO\u2082 slowly',
+          'Acids extract gently from large particles',
+          'Lower surface area means slower extraction',
+          'Fruit and floral notes are subtle',
+          'Crust forms on surface trapping aromatics'
+        ],
+        note: 'Breaking the crust at 4 minutes releases captured aromas'
+      },
+      2: {
+        title: 'Phase 2 \u2014 Full Immersion',
+        range: '90\u2013180 seconds',
+        items: [
+          'Sugars dissolve steadily in hot water',
+          'Metal mesh allows oils through \u2014 fuller body',
+          'Melanoidins contribute rich amber hue',
+          'Chocolate and caramel notes dominate',
+          'Sediment begins settling'
+        ],
+        note: 'No paper filter means more oils and body \u2014 the defining French press character'
+      },
+      3: {
+        title: 'Phase 3 \u2014 Over-Steep Risk',
+        range: '180\u2013240 seconds',
+        items: [
+          'Plunge timing is critical',
+          'Tannins extract more aggressively',
+          'Sediment muddies the cup if disturbed',
+          'Bitterness increases past 4 minutes',
+          'Astringent, drying finish if left too long'
+        ],
+        note: 'Decant immediately after plunging \u2014 extraction continues from settled grounds'
+      }
+    },
+    statTooltips: {
+      tds: 'French press runs 1.1\u20131.3%. Metal mesh allows oils through for heavier body.',
+      yield: '16\u201319% is typical. Coarse grind limits extraction.',
+      dose: '17g serves one large mug (~250ml) of French press coffee.',
+      ratio: '1:15 \u2014 similar to pour-over but with full immersion contact.',
+      time: '4 minutes is the standard; decant immediately after plunging.'
+    },
+    legendPressureTooltip: 'Full immersion brewing with no pressure. The metal mesh filter allows oils and fine sediment through for a heavy body.',
+    defaultGrind: 3,
+    puck3d: { radius: 1.6, height: 1.8, screenRadius: 1.65, screenColor: 0x888888, screenOpacity: 0.25 }
+  }
+};
+
+var channelingPaths = [
+  { angle: 0.72, lengthFrac: 0.68, width: 1.5 },
+  { angle: 1.95, lengthFrac: 0.75, width: 1.2 },
+  { angle: 2.83, lengthFrac: 0.52, width: 1.8 },
+  { angle: 4.15, lengthFrac: 0.61, width: 1.0 },
+  { angle: 5.47, lengthFrac: 0.70, width: 1.3 }
+];
+
+// ============================================================
+// URL STATE ENCODING
+// ============================================================
+var urlDefaults = { grind: 1, brew: 'espresso', temp: 1, crema: 1, theme: 'dark' };
+
+function loadStateFromURL() {
+  var p = new URLSearchParams(window.location.search);
+  if (p.has('grind')) {
+    var g = parseInt(p.get('grind'));
+    if (g >= 0 && g <= 3) {
+      state.targetGrind = g;
+      state.currentGrind = g;
+      document.querySelectorAll('#grindGroup .gbtn').forEach(function(b) {
+        b.classList.toggle('on', parseInt(b.dataset.grind) === g);
+      });
+    }
+  }
+  if (p.has('brew')) {
+    var brew = p.get('brew');
+    if (brewConfigs[brew]) {
+      var cfg = brewConfigs[brew];
+      state.activeBrew = brew;
+      state.animTime1 = cfg.time1;
+      state.animTime2 = cfg.time2;
+      state.animTime3 = cfg.time3;
+      document.querySelectorAll('#brewToggle .gbtn').forEach(function(b) {
+        b.classList.toggle('on', b.dataset.brew === brew);
+      });
+      document.getElementById('statTDS').textContent = cfg.tds;
+      document.getElementById('statYield').textContent = cfg.yield;
+      document.getElementById('statDose').textContent = cfg.dose;
+      document.getElementById('statRatio').textContent = cfg.ratio;
+      document.getElementById('statTime').textContent = cfg.time;
+    }
+  }
+  if (p.has('temp')) {
+    var t = parseInt(p.get('temp'));
+    if (t === 0 || t === 1) {
+      state.showTemp = !!t;
+      document.getElementById('tempToggle').classList.toggle('on', state.showTemp);
+    }
+  }
+  if (p.has('crema')) {
+    var cr = parseInt(p.get('crema'));
+    if (cr === 0 || cr === 1) {
+      state.showCrema = !!cr;
+      document.getElementById('cremaToggle').classList.toggle('on', state.showCrema);
+    }
+  }
+  if (p.has('theme')) {
+    var th = p.get('theme');
+    if (th === 'dark' || th === 'light') {
+      state.isDark = th === 'dark';
+      document.documentElement.setAttribute('data-theme', th);
+      document.getElementById('themeIcon').textContent = state.isDark ? 'dark_mode' : 'light_mode';
+    }
+  }
+}
+
+function pushStateToURL() {
+  var params = new URLSearchParams();
+  if (state.targetGrind !== urlDefaults.grind) params.set('grind', state.targetGrind);
+  if (state.activeBrew !== urlDefaults.brew) params.set('brew', state.activeBrew);
+  if ((state.showTemp ? 1 : 0) !== urlDefaults.temp) params.set('temp', state.showTemp ? 1 : 0);
+  if ((state.showCrema ? 1 : 0) !== urlDefaults.crema) params.set('crema', state.showCrema ? 1 : 0);
+  var currentTheme = state.isDark ? 'dark' : 'light';
+  if (currentTheme !== urlDefaults.theme) params.set('theme', currentTheme);
+  var qs = params.toString();
+  var newURL = window.location.pathname + (qs ? '?' + qs : '');
+  history.replaceState(null, '', newURL);
+}
+
+loadStateFromURL();
+
+var themeToggle = document.getElementById('themeToggle');
+var themeIcon = document.getElementById('themeIcon');
+themeToggle.addEventListener('click', function() { setTheme(state.isDark ? 'light' : 'dark'); });
+function setTheme(t) {
+  state.isDark = t === 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  themeIcon.textContent = state.isDark ? 'dark_mode' : 'light_mode';
+  pushStateToURL();
+}
+
+document.getElementById('grindGroup').addEventListener('click', function(e) {
+  var btn = e.target.closest('.gbtn');
+  if (!btn) return;
+  state.targetGrind = parseInt(btn.dataset.grind);
+  document.querySelectorAll('#grindGroup .gbtn').forEach(function(b) { b.classList.remove('on'); });
+  btn.classList.add('on');
+  pushStateToURL();
+});
+document.getElementById('tempToggle').addEventListener('click', function() {
+  state.showTemp = !state.showTemp; this.classList.toggle('on');
+  pushStateToURL();
+});
+document.getElementById('cremaToggle').addEventListener('click', function() {
+  state.showCrema = !state.showCrema; this.classList.toggle('on');
+  pushStateToURL();
+});
+
+function animateStatValue(element, fromVal, toVal, prefix, suffix, duration, decimals) {
+  var startTime = null;
+  var from = parseFloat(fromVal);
+  var to = parseFloat(toVal);
+  decimals = decimals || 0;
+  if (isNaN(from) || isNaN(to) || from === to) {
+    element.textContent = prefix + (decimals > 0 ? toVal.toFixed ? toVal.toFixed(decimals) : toVal : toVal) + suffix;
+    return;
+  }
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function tick(ts) {
+    if (!startTime) startTime = ts;
+    var elapsed = ts - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = easeOutCubic(progress);
+    var current = from + (to - from) * eased;
+    if (decimals > 0) {
+      element.textContent = prefix + current.toFixed(decimals) + suffix;
+    } else {
+      element.textContent = prefix + Math.round(current) + suffix;
+    }
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+document.getElementById('brewToggle').addEventListener('click', function(e) {
+  var btn = e.target.closest('.gbtn');
+  if (!btn) return;
+  var brew = btn.dataset.brew;
+  if (brew === state.activeBrew) return;
+
+  var oldCfg = brewConfigs[state.activeBrew];
+  var newCfg = brewConfigs[brew];
+  state.activeBrew = brew;
+
+  document.querySelectorAll('#brewToggle .gbtn').forEach(function(b) { b.classList.remove('on'); });
+  btn.classList.add('on');
+
+  // Auto-set grind to the brew method's typical default
+  var recommendedGrind = newCfg.defaultGrind;
+  state.targetGrind = recommendedGrind;
+  document.querySelectorAll('#grindGroup .gbtn').forEach(function(b) {
+    b.classList.toggle('on', parseInt(b.dataset.grind) === recommendedGrind);
+  });
+
+  var duration = 600;
+  var oldTDS = oldCfg.tdsNum;
+  var newTDS = newCfg.tdsNum;
+  var dec = (newTDS < 5 || oldTDS < 5) ? 1 : 0;
+  animateStatValue(document.getElementById('statTDS'), oldTDS, newTDS, '~', '%', duration, dec);
+  animateStatValue(document.getElementById('statYield'), oldCfg.yieldNum, newCfg.yieldNum, '', '%', duration, 0);
+  document.getElementById('statDose').textContent = newCfg.dose;
+  document.getElementById('statRatio').textContent = newCfg.ratio;
+  document.getElementById('statTime').textContent = newCfg.time;
+
+  document.getElementById('statTDSPill').setAttribute('data-tooltip', newCfg.statTooltips.tds);
+  document.getElementById('statYieldPill').setAttribute('data-tooltip', newCfg.statTooltips.yield);
+  document.getElementById('statDosePill').setAttribute('data-tooltip', newCfg.statTooltips.dose);
+  document.getElementById('statRatioPill').setAttribute('data-tooltip', newCfg.statTooltips.ratio);
+  document.getElementById('statTimePill').setAttribute('data-tooltip', newCfg.statTooltips.time);
+
+  var pressureLegend = document.querySelector('[data-legend="pressure"]');
+  if (pressureLegend) pressureLegend.setAttribute('data-tooltip', newCfg.legendPressureTooltip);
+
+  pushStateToURL();
+});
+
+var tooltipEl = document.getElementById('tooltip');
+var ttTimeout;
+document.querySelectorAll('[data-tooltip]').forEach(function(el) {
+  el.addEventListener('mouseenter', function() {
+    tooltipEl.textContent = el.dataset.tooltip;
+    ttTimeout = setTimeout(function() {
+      var r = el.getBoundingClientRect();
+      var tw = 260;
+      var left = r.left + r.width / 2 - tw / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+      if (el.dataset.legend) {
+        tooltipEl.style.top = (r.top - 10) + 'px';
+        tooltipEl.style.transform = 'translateY(-100%)';
+      } else {
+        tooltipEl.style.top = (r.bottom + 10) + 'px';
+        tooltipEl.style.transform = '';
+      }
+      tooltipEl.style.left = left + 'px';
+      tooltipEl.classList.add('visible');
+    }, 300);
+  });
+  el.addEventListener('mouseleave', function() {
+    clearTimeout(ttTimeout); tooltipEl.classList.remove('visible');
+    tooltipEl.style.transform = '';
+  });
+});
+
+var legendItems = document.querySelectorAll('[data-legend]');
+legendItems.forEach(function(el) {
+  el.addEventListener('mouseenter', function() {
+    if (tour.active) return;
+    state.highlightedLayer = el.dataset.legend;
+    legendItems.forEach(function(other) {
+      if (other !== el) other.classList.add('dimmed');
+    });
+  });
+  el.addEventListener('mouseleave', function() {
+    if (tour.active) return;
+    state.highlightedLayer = null;
+    legendItems.forEach(function(other) { other.classList.remove('dimmed'); });
+  });
+});
+
+var canvas = document.getElementById('extraction');
+var ctx = canvas.getContext('2d');
+var container = document.getElementById('canvasContainer');
+var phaseTooltipEl = document.getElementById('phaseTooltip');
+
+canvas.addEventListener('mousemove', function(e) {
+  if (tour.active) return;
+  var rect = canvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+  state.mouseX = e.clientX;
+  state.mouseY = e.clientY;
+
+  var dx = mx - state.cx;
+  var dy = my - state.cy;
+  var dist = Math.sqrt(dx * dx + dy * dy);
+
+  var gv = getGrindValues(state.currentGrind);
+  var p1R = state.maxR * gv.phase1End;
+  var p2R = state.maxR * gv.phase2End;
+
+  var phase = 0;
+  if (dist <= state.maxR && dist > 4) {
+    if (dist <= p1R) phase = 1;
+    else if (dist <= p2R) phase = 2;
+    else phase = 3;
+  }
+
+  if (phase !== state.hoveredPhase) {
+    state.hoveredPhase = phase;
+    if (phase > 0) {
+      var info = brewConfigs[state.activeBrew].phaseInfo[phase];
+      var html = '<div class="zt-title">' + info.title + '</div>';
+      html += '<div class="zt-range">' + info.range + '</div>';
+      info.items.forEach(function(item) {
+        html += '<div class="zt-item">' + item + '</div>';
+      });
+      html += '<div class="zt-res">' + info.note + '</div>';
+      phaseTooltipEl.innerHTML = html;
+
+      var contRect = container.getBoundingClientRect();
+      var tipX = e.clientX - contRect.left + 16;
+      var tipY = e.clientY - contRect.top - 20;
+      if (tipX + 310 > contRect.width) tipX = e.clientX - contRect.left - 320;
+      if (tipY < 0) tipY = 10;
+      if (tipY + 250 > contRect.height) tipY = contRect.height - 260;
+      phaseTooltipEl.style.left = tipX + 'px';
+      phaseTooltipEl.style.top = tipY + 'px';
+      phaseTooltipEl.classList.add('visible');
+    } else {
+      phaseTooltipEl.classList.remove('visible');
+    }
+  } else if (phase > 0) {
+    var contRect = container.getBoundingClientRect();
+    var tipX = e.clientX - contRect.left + 16;
+    var tipY = e.clientY - contRect.top - 20;
+    if (tipX + 310 > contRect.width) tipX = e.clientX - contRect.left - 320;
+    if (tipY < 0) tipY = 10;
+    if (tipY + 250 > contRect.height) tipY = contRect.height - 260;
+    phaseTooltipEl.style.left = tipX + 'px';
+    phaseTooltipEl.style.top = tipY + 'px';
+  }
+});
+
+canvas.addEventListener('mouseleave', function() {
+  state.hoveredPhase = 0;
+  phaseTooltipEl.classList.remove('visible');
+});
+
+var iconReady = false;
+var iconFont = new FontFace('Material Symbols Outlined',
+  "url(https://fonts.gstatic.com/s/materialsymbolsoutlined/v252/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2)");
+iconFont.load().then(function(f) { document.fonts.add(f); iconReady = true; }).catch(function(){});
+
+function resize() {
+  var rect = container.getBoundingClientRect();
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function c(dark, light) { return state.isDark ? dark : light; }
+
+function getGrindValues(grindVal) {
+  var low = Math.floor(Math.max(0, Math.min(grindVal, 3)));
+  var high = Math.min(low + 1, 3);
+  var t = grindVal - low;
+  var cL = grindConfigs[low];
+  var cH = grindConfigs[high];
+  return {
+    phase1End: lerp(cL.phase1End, cH.phase1End, t),
+    phase2End: lerp(cL.phase2End, cH.phase2End, t),
+    channeling: lerp(cL.channeling, cH.channeling, t),
+    resistance: lerp(cL.resistance, cH.resistance, t)
+  };
+}
+
+function formatTime(seconds) {
+  if (seconds < 60) return Math.round(seconds) + 's';
+  var m = Math.floor(seconds / 60);
+  var s = Math.round(seconds % 60);
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function draw() {
+  var w = canvas.clientWidth, h = canvas.clientHeight;
+  if (w === 0 || h === 0) { requestAnimationFrame(draw); return; }
+
+  var cx = w * 0.5;
+  var cy = h * 0.5;
+  var font = "'Karla', system-ui, sans-serif";
+
+  state.currentGrind = lerp(state.currentGrind, state.targetGrind, 0.06);
+  var cfg = brewConfigs[state.activeBrew];
+  state.animTime1 = lerp(state.animTime1, cfg.time1, 0.06);
+  state.animTime2 = lerp(state.animTime2, cfg.time2, 0.06);
+  state.animTime3 = lerp(state.animTime3, cfg.time3, 0.06);
+
+  var maxR = Math.min(cx, cy) * 0.80;
+  state.cx = cx; state.cy = cy; state.maxR = maxR;
+
+  var gv = getGrindValues(state.currentGrind);
+  var p1R = maxR * gv.phase1End;
+  var p2R = maxR * gv.phase2End;
+  var p3R = maxR;
+
+  var hl = state.highlightedLayer;
+  function lA(layerName) {
+    if (!hl) return 1;
+    return hl === layerName ? 1 : 0.04;
+  }
+
+  var bgColor = c('#111111', '#FFFFFF');
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, w, h);
+
+  // Dot grid
+  ctx.fillStyle = c('rgba(255,255,255,0.025)', 'rgba(0,0,0,0.05)');
+  for (var gx = 0; gx < w; gx += 32) {
+    for (var gy = 0; gy < h; gy += 32) {
+      ctx.beginPath();
+      ctx.arc(gx, gy, 0.5, 0, 6.28);
+      ctx.fill();
+    }
+  }
+
+  // ============================================================
+  // PHASE FILLS — annular rings
+  // ============================================================
+  ctx.globalAlpha = lA('phases');
+  var hp = state.hoveredPhase;
+  var phaseBands = [
+    { inner: 0, outer: p1R, num: 1 },
+    { inner: p1R, outer: p2R, num: 2 },
+    { inner: p2R, outer: p3R, num: 3 }
+  ];
+  var defaultFills = [
+    c('rgba(212,165,116,0.06)', 'rgba(184,115,51,0.07)'),
+    c('rgba(212,165,116,0.04)', 'rgba(184,115,51,0.05)'),
+    c('rgba(212,165,116,0.025)', 'rgba(184,115,51,0.03)')
+  ];
+  var hoverFills = [
+    c('rgba(212,165,116,0.16)', 'rgba(184,115,51,0.14)'),
+    c('rgba(212,165,116,0.10)', 'rgba(184,115,51,0.10)'),
+    c('rgba(212,165,116,0.08)', 'rgba(184,115,51,0.08)')
+  ];
+  var dimFill = c('rgba(212,165,116,0.005)', 'rgba(184,115,51,0.006)');
+
+  phaseBands.forEach(function(band, i) {
+    ctx.beginPath();
+    if (band.inner === 0) {
+      ctx.arc(cx, cy, band.outer, 0, Math.PI * 2);
+    } else {
+      ctx.arc(cx, cy, band.outer, 0, Math.PI * 2);
+      ctx.arc(cx, cy, band.inner, Math.PI * 2, 0, true);
+      ctx.closePath();
+    }
+    ctx.fillStyle = hp === band.num ? hoverFills[i]
+                  : (hp > 0 ? dimFill : defaultFills[i]);
+    ctx.fill();
+  });
+
+  // Phase boundary circles + labels
+  var phaseRadii = [p1R, p2R, p3R];
+  var phaseAlphas = [0.30, 0.25, 0.22];
+  var timeLabels = [formatTime(state.animTime1), formatTime(state.animTime2), formatTime(state.animTime3)];
+
+  phaseRadii.forEach(function(pr, idx) {
+    var phaseNum = idx + 1;
+    var isHovered = hp === phaseNum;
+    var isDimmed = hp > 0 && hp !== phaseNum;
+    var a = isHovered ? Math.min(phaseAlphas[idx] * 2.2, 0.4)
+          : isDimmed ? phaseAlphas[idx] * 0.2
+          : phaseAlphas[idx];
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, pr, 0, Math.PI * 2);
+    ctx.strokeStyle = c('rgba(212,165,116,' + a + ')', 'rgba(184,115,51,' + a + ')');
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]); ctx.stroke();
+
+    // Time label at top of circle
+    var lbx = cx;
+    var lby = cy - pr;
+    ctx.fillStyle = c('rgba(212,165,116,' + a + ')', 'rgba(184,115,51,' + a + ')');
+    ctx.font = "500 9px 'Karla', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.fillText(timeLabels[idx], lbx, lby - 4);
+  });
+
+  // Phase labels at 2 o'clock
+  var labelAngle = -Math.PI / 5;
+  var phaseNames = cfg.phaseNames;
+  var p1MidR = p1R * 0.68;
+  var p2MidR = (p1R + p2R) / 2;
+  var p3MidR = (p2R + p3R) / 2;
+
+  [{r: p1MidR, name: 'PHASE 1', sub: phaseNames[0], phase: 1},
+   {r: p2MidR, name: 'PHASE 2', sub: phaseNames[1], phase: 2},
+   {r: p3MidR, name: 'PHASE 3', sub: phaseNames[2], phase: 3}
+  ].forEach(function(z) {
+    var lx = cx + Math.cos(labelAngle) * z.r;
+    var ly = cy + Math.sin(labelAngle) * z.r;
+    var isHovered = hp === z.phase;
+    var isDimmed = hp > 0 && hp !== z.phase;
+    ctx.fillStyle = isHovered
+      ? c('rgba(212,165,116,0.90)', 'rgba(184,115,51,0.85)')
+      : isDimmed
+        ? c('rgba(200,200,210,0.20)', 'rgba(100,100,110,0.25)')
+        : c('rgba(200,200,210,0.70)', 'rgba(100,100,110,0.70)');
+    ctx.font = '600 11px ' + font;
+    ctx.textAlign = 'left';
+    ctx.fillText(z.name, lx + 10, ly - 1);
+    ctx.fillStyle = isHovered
+      ? c('rgba(212,165,116,0.55)', 'rgba(184,115,51,0.55)')
+      : isDimmed
+        ? c('rgba(200,200,210,0.08)', 'rgba(100,100,110,0.10)')
+        : c('rgba(200,200,210,0.45)', 'rgba(100,100,110,0.50)');
+    ctx.font = '400 10px ' + font;
+    ctx.fillText(z.sub, lx + 10, ly + 12);
+  });
+
+  ctx.globalAlpha = 1;
+
+  // ============================================================
+  // TEMPERATURE GRADIENT — smooth radial + contour rings
+  // ============================================================
+  if (state.showTemp) {
+    ctx.globalAlpha = lA('temp');
+    var tempR = maxR * 0.9;
+    var tg = ctx.createRadialGradient(cx, cy, 0, cx, cy, tempR);
+    tg.addColorStop(0, c('rgba(220,100,60,0.18)', 'rgba(180,60,30,0.16)'));
+    tg.addColorStop(0.3, c('rgba(220,100,60,0.10)', 'rgba(180,60,30,0.09)'));
+    tg.addColorStop(0.6, c('rgba(220,100,60,0.05)', 'rgba(180,60,30,0.04)'));
+    tg.addColorStop(1, c('rgba(220,100,60,0.01)', 'rgba(180,60,30,0.01)'));
+    ctx.beginPath();
+    ctx.arc(cx, cy, tempR, 0, Math.PI * 2);
+    ctx.fillStyle = tg; ctx.fill();
+
+    // Contour rings at 93, 90, 85 C
+    var contours = [
+      { frac: 0.25, label: '93\u00B0C' },
+      { frac: 0.50, label: '90\u00B0C' },
+      { frac: 0.75, label: '85\u00B0C' }
+    ];
+    contours.forEach(function(ct) {
+      var cr = tempR * ct.frac;
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+      ctx.strokeStyle = c('rgba(220,100,60,0.18)', 'rgba(180,60,30,0.15)');
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 6]); ctx.stroke(); ctx.setLineDash([]);
+      // Label
+      ctx.fillStyle = c('rgba(220,100,60,0.35)', 'rgba(180,60,30,0.30)');
+      ctx.font = "400 8px 'Karla', sans-serif";
+      ctx.textAlign = 'left';
+      ctx.fillText(ct.label, cx + cr + 4, cy - 2);
+    });
+  }
+  ctx.globalAlpha = 1;
+
+  // ============================================================
+  // RESISTANCE ZONE — partial annular segment
+  // ============================================================
+  ctx.globalAlpha = lA('resistance');
+  var resistArc = gv.resistance * Math.PI * 1.2;
+  if (resistArc > 0.02) {
+    var resistCenter = Math.PI * 0.6;
+    var resistStart = resistCenter - resistArc / 2;
+    var resistEnd = resistCenter + resistArc / 2;
+    var resistInner = maxR * 0.78;
+    ctx.beginPath();
+    ctx.arc(cx, cy, maxR, resistStart, resistEnd);
+    ctx.arc(cx, cy, resistInner, resistEnd, resistStart, true);
+    ctx.closePath();
+    var rg = ctx.createRadialGradient(cx, cy, resistInner, cx, cy, maxR);
+    rg.addColorStop(0, c('rgba(180,100,40,0.02)', 'rgba(139,69,19,0.015)'));
+    rg.addColorStop(1, c('rgba(180,100,40,0.07)', 'rgba(139,69,19,0.07)'));
+    ctx.fillStyle = rg; ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // ============================================================
+  // CHANNELING PATHS — irregular radial lines
+  // ============================================================
+  ctx.globalAlpha = lA('channeling');
+  channelingPaths.forEach(function(path, i) {
+    if (gv.channeling < (i + 1) * 0.15) return;
+    var pathR = maxR * path.lengthFrac;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    var steps = 20;
+    for (var s = 1; s <= steps; s++) {
+      var t = s / steps;
+      var r = pathR * t;
+      var wobble = Math.sin(t * 8 + path.angle * 3) * 3;
+      var px = cx + Math.cos(path.angle) * r + Math.cos(path.angle + Math.PI / 2) * wobble;
+      var py = cy + Math.sin(path.angle) * r + Math.sin(path.angle + Math.PI / 2) * wobble;
+      ctx.lineTo(px, py);
+    }
+    var pg = ctx.createLinearGradient(cx, cy,
+      cx + Math.cos(path.angle) * pathR, cy + Math.sin(path.angle) * pathR);
+    pg.addColorStop(0, c('rgba(205,133,63,0.02)', 'rgba(160,82,45,0.02)'));
+    pg.addColorStop(0.3, c('rgba(205,133,63,' + (0.15 * gv.channeling) + ')', 'rgba(160,82,45,' + (0.12 * gv.channeling) + ')'));
+    pg.addColorStop(1, c('rgba(205,133,63,' + (0.08 * gv.channeling) + ')', 'rgba(160,82,45,' + (0.06 * gv.channeling) + ')'));
+    ctx.strokeStyle = pg;
+    ctx.lineWidth = path.width;
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+
+  // ============================================================
+  // PRESSURE PROFILE — radial gradient layers, full 360
+  // ============================================================
+  ctx.globalAlpha = lA('pressure');
+  for (var il = 7; il >= 0; il--) {
+    var t2 = il / 7;
+    var r2 = maxR * (0.35 + t2 * 0.65);
+    var al = 0.01 + (1 - t2) * 0.07;
+
+    var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r2);
+    g.addColorStop(0, c('rgba(212,165,116,' + (al * 1.2) + ')', 'rgba(184,115,51,' + (al * 1.0) + ')'));
+    g.addColorStop(0.25, c('rgba(212,165,116,' + al + ')', 'rgba(184,115,51,' + (al * 0.8) + ')'));
+    g.addColorStop(0.6, c('rgba(212,165,116,' + (al * 0.4) + ')', 'rgba(184,115,51,' + (al * 0.3) + ')'));
+    g.addColorStop(1, 'rgba(212,165,116,0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, r2, 0, Math.PI * 2);
+    ctx.fillStyle = g; ctx.fill();
+  }
+
+  // ============================================================
+  // FLOW DISTRIBUTION — wobbly circle, dashed
+  // ============================================================
+  ctx.globalAlpha = lA('flow');
+  ctx.beginPath();
+  var wobbleSteps = 72;
+  for (var ws = 0; ws <= wobbleSteps; ws++) {
+    var wt = ws / wobbleSteps;
+    var wAng = wt * Math.PI * 2;
+    var wobble = 1 + 0.03 * Math.sin(wAng * 5) + 0.02 * Math.sin(wAng * 7 + 1.3);
+    var flowR = maxR * 0.85 * wobble;
+    var fpx = cx + Math.cos(wAng) * flowR;
+    var fpy = cy + Math.sin(wAng) * flowR;
+    if (ws === 0) ctx.moveTo(fpx, fpy);
+    else ctx.lineTo(fpx, fpy);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = c('rgba(212,165,116,0.22)', 'rgba(184,115,51,0.18)');
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+
+  // ============================================================
+  // CREMA FORMATION — outward-expanding golden annular ring
+  // ============================================================
+  if (state.showCrema) {
+    ctx.globalAlpha = lA('crema');
+    state.cremaPhase += 0.002;
+    if (state.cremaPhase > 1) state.cremaPhase = 0;
+    var cremaT = state.cremaPhase;
+    var cremaFade = 1 - cremaT; // fades out as it expands
+    var cremaInnerR = maxR * (0.05 + cremaT * 0.55);
+    var cremaOuterR = cremaInnerR + maxR * 0.05;
+
+    for (var cl = 3; cl >= 0; cl--) {
+      var cex = cl * 0.01 * maxR;
+      var ca = (0.14 - cl * 0.025) * cremaFade;
+      var cg = ctx.createRadialGradient(cx, cy, cremaInnerR - cex, cx, cy, cremaOuterR + cex);
+      cg.addColorStop(0, 'rgba(240,200,80,0)');
+      cg.addColorStop(0.3, c('rgba(240,200,80,' + (ca * 2) + ')', 'rgba(218,165,32,' + (ca * 2.2) + ')'));
+      cg.addColorStop(0.7, c('rgba(240,200,80,' + ca + ')', 'rgba(218,165,32,' + (ca * 1.2) + ')'));
+      cg.addColorStop(1, 'rgba(240,200,80,0)');
+      ctx.beginPath();
+      ctx.arc(cx, cy, cremaOuterR + cex, 0, Math.PI * 2);
+      ctx.arc(cx, cy, Math.max(0, cremaInnerR - cex), Math.PI * 2, 0, true);
+      ctx.closePath();
+      ctx.fillStyle = cg; ctx.fill();
+    }
+
+    // Crema ring outline
+    ctx.beginPath();
+    ctx.arc(cx, cy, (cremaInnerR + cremaOuterR) / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = c('rgba(240,200,80,' + (0.30 * cremaFade) + ')', 'rgba(218,165,32,' + (0.35 * cremaFade) + ')');
+    ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.globalAlpha = 1;
+
+  // ============================================================
+  // BASKET RIM — solid circle
+  // ============================================================
+  ctx.beginPath();
+  ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
+  ctx.strokeStyle = c('rgba(212,165,116,0.15)', 'rgba(184,115,51,0.15)');
+  ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
+
+  // ============================================================
+  // WATER FLOW PULSE — expanding thin ring
+  // ============================================================
+  ctx.globalAlpha = lA('pressure');
+  state.flowPulse += 0.003;
+  if (state.flowPulse > 1) state.flowPulse = 0;
+  var pulseR = maxR * state.flowPulse;
+  var pulseAlpha = 0.15 * (1 - state.flowPulse);
+  ctx.beginPath();
+  ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+  ctx.strokeStyle = c('rgba(212,165,116,' + pulseAlpha + ')', 'rgba(184,115,51,' + pulseAlpha + ')');
+  ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ============================================================
+  // HIGHLIGHT OVERLAYS
+  // ============================================================
+  if (hl === 'pressure') {
+    var hrg = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+    hrg.addColorStop(0, c('rgba(212,165,116,0.25)', 'rgba(184,115,51,0.20)'));
+    hrg.addColorStop(0.5, c('rgba(212,165,116,0.10)', 'rgba(184,115,51,0.08)'));
+    hrg.addColorStop(1, 'rgba(212,165,116,0)');
+    ctx.beginPath(); ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
+    ctx.fillStyle = hrg; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
+    ctx.strokeStyle = c('rgba(212,165,116,0.40)', 'rgba(184,115,51,0.35)');
+    ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  if (hl === 'flow') {
+    ctx.beginPath();
+    for (var fh = 0; fh <= 72; fh++) {
+      var fht = fh / 72;
+      var fhAng = fht * Math.PI * 2;
+      var fhW = 1 + 0.03 * Math.sin(fhAng * 5) + 0.02 * Math.sin(fhAng * 7 + 1.3);
+      var fhR = maxR * 0.85 * fhW;
+      var fhpx = cx + Math.cos(fhAng) * fhR;
+      var fhpy = cy + Math.sin(fhAng) * fhR;
+      if (fh === 0) ctx.moveTo(fhpx, fhpy); else ctx.lineTo(fhpx, fhpy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = c('rgba(212,165,116,0.07)', 'rgba(184,115,51,0.05)');
+    ctx.fill();
+    ctx.strokeStyle = c('rgba(212,165,116,0.55)', 'rgba(184,115,51,0.45)');
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  if (hl === 'channeling') {
+    channelingPaths.forEach(function(path) {
+      var pathR = maxR * path.lengthFrac;
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      var steps = 20;
+      for (var s = 1; s <= steps; s++) {
+        var t = s / steps;
+        var r = pathR * t;
+        var wobble = Math.sin(t * 8 + path.angle * 3) * 3;
+        ctx.lineTo(
+          cx + Math.cos(path.angle) * r + Math.cos(path.angle + Math.PI / 2) * wobble,
+          cy + Math.sin(path.angle) * r + Math.sin(path.angle + Math.PI / 2) * wobble
+        );
+      }
+      ctx.strokeStyle = c('rgba(205,133,63,0.55)', 'rgba(160,82,45,0.45)');
+      ctx.lineWidth = path.width + 0.5;
+      ctx.stroke();
+    });
+  }
+
+  if (hl === 'temp' && state.showTemp) {
+    var htR = maxR * 0.9;
+    var htg = ctx.createRadialGradient(cx, cy, 0, cx, cy, htR);
+    htg.addColorStop(0, c('rgba(220,100,60,0.28)', 'rgba(180,60,30,0.22)'));
+    htg.addColorStop(0.5, c('rgba(220,100,60,0.12)', 'rgba(180,60,30,0.10)'));
+    htg.addColorStop(1, 'rgba(220,100,60,0)');
+    ctx.beginPath(); ctx.arc(cx, cy, htR, 0, Math.PI * 2);
+    ctx.fillStyle = htg; ctx.fill();
+    var contours2 = [0.25, 0.50, 0.75];
+    contours2.forEach(function(frac) {
+      ctx.beginPath(); ctx.arc(cx, cy, htR * frac, 0, Math.PI * 2);
+      ctx.strokeStyle = c('rgba(220,100,60,0.40)', 'rgba(180,60,30,0.35)');
+      ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+    });
+  }
+
+  if (hl === 'crema' && state.showCrema) {
+    var hcT = state.cremaPhase;
+    var hcFade = 1 - hcT;
+    var hcInner = maxR * (0.05 + hcT * 0.55);
+    var hcOuter = hcInner + maxR * 0.05;
+    ctx.beginPath();
+    ctx.arc(cx, cy, hcOuter, 0, Math.PI * 2);
+    ctx.arc(cx, cy, hcInner, Math.PI * 2, 0, true);
+    ctx.closePath();
+    ctx.fillStyle = c('rgba(240,200,80,' + (0.28 * hcFade) + ')', 'rgba(218,165,32,' + (0.25 * hcFade) + ')');
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, (hcInner + hcOuter) / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = c('rgba(240,200,80,' + (0.60 * hcFade) + ')', 'rgba(218,165,32,' + (0.55 * hcFade) + ')');
+    ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  if (hl === 'resistance') {
+    var hrArc = gv.resistance * Math.PI * 1.2;
+    if (hrArc > 0.02) {
+      var hrCenter = Math.PI * 0.6;
+      var hrS = hrCenter - hrArc / 2;
+      var hrE = hrCenter + hrArc / 2;
+      var hrInner = maxR * 0.78;
+      ctx.beginPath();
+      ctx.arc(cx, cy, maxR, hrS, hrE);
+      ctx.arc(cx, cy, hrInner, hrE, hrS, true);
+      ctx.closePath();
+      ctx.fillStyle = c('rgba(180,100,40,0.18)', 'rgba(139,69,19,0.14)');
+      ctx.fill();
+      ctx.strokeStyle = c('rgba(180,100,40,0.48)', 'rgba(139,69,19,0.40)');
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  if (hl === 'phases') {
+    [
+      {inner: 0, outer: p1R, color: c('rgba(212,165,116,0.10)', 'rgba(184,115,51,0.09)')},
+      {inner: p1R, outer: p2R, color: c('rgba(212,165,116,0.07)', 'rgba(184,115,51,0.06)')},
+      {inner: p2R, outer: p3R, color: c('rgba(212,165,116,0.04)', 'rgba(184,115,51,0.04)')}
+    ].forEach(function(z) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, z.outer, 0, Math.PI * 2);
+      if (z.inner > 0) {
+        ctx.arc(cx, cy, z.inner, Math.PI * 2, 0, true);
+      }
+      ctx.closePath();
+      ctx.fillStyle = z.color;
+      ctx.fill();
+    });
+    [p1R, p2R, p3R].forEach(function(pr) {
+      ctx.beginPath(); ctx.arc(cx, cy, pr, 0, Math.PI * 2);
+      ctx.strokeStyle = c('rgba(212,165,116,0.50)', 'rgba(184,115,51,0.42)');
+      ctx.lineWidth = 1.5; ctx.stroke();
+    });
+  }
+
+  // ============================================================
+  // CENTER ORIGIN — minimal geometric point
+  // ============================================================
+  var og = ctx.createRadialGradient(cx, cy, 0, cx, cy, 12);
+  og.addColorStop(0, c('rgba(212,165,116,0.25)', 'rgba(184,115,51,0.20)'));
+  og.addColorStop(1, 'rgba(184,115,51,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, 12, 0, 6.28);
+  ctx.fillStyle = og; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 6.28);
+  ctx.fillStyle = c('rgba(212,165,116,0.50)', 'rgba(184,115,51,0.40)');
+  ctx.fill();
+
+  ctx.beginPath(); ctx.arc(cx, cy, 6, 0, 6.28);
+  ctx.strokeStyle = c('rgba(212,165,116,0.15)', 'rgba(184,115,51,0.12)');
+  ctx.lineWidth = 0.5; ctx.stroke();
+
+  requestAnimationFrame(draw);
+}
+
+var ro = new ResizeObserver(function() {
+  resize();
+  resize3D();
+});
+ro.observe(container);
+resize();
+draw();
+
+// ============================================================
+// 3D PUCK CROSS-SECTION — Enhanced with particles, saturation,
+// crema, channeling, temperature glow, and idle rotation
+// ============================================================
+var scene3d, camera3d, renderer3d, puckGroup, groundGrid;
+var puckMeshes = [], puckWires = [], showerScreen;
+var puck3dContainer = document.getElementById('puck3dContainer');
+var lastPuckGrind = -1;
+var lastPuckBrew = null;
+var lastPuckThemeDark = null;
+
+var orbitTheta = 0.4;
+var orbitPhi = 1.1;
+var orbitRadius = 10.0;
+var isDragging3D = false;
+var dragStart3D = { x: 0, y: 0 };
+
+var PUCK_RADIUS = 1.8;
+var PUCK_HEIGHT = 1.2;
+
+// --- Enhancement state ---
+var waterParticles = [];       // 1. Water flow particles
+var particleGroup;
+var saturationClock = 0;       // 2. Color saturation animation
+var cremaMesh3D = null;        // 3. Crema disc
+var cremaExpand3D = 0;
+var channelingLines = [];      // 4. Channeling lines
+var channelingGroup;
+var idleResumeTimer = 0;       // 6. Idle rotation
+var lastDragTime = 0;
+var clock3D = 0;
+
+// Track puck layer Y offsets and heights for particles/channeling
+var puckLayerData = { yOffsets: [], heights: [], totalH: 0, radius: 1.8 };
+
+function init3D() {
+  if (typeof THREE === 'undefined') return;
+
+  scene3d = new THREE.Scene();
+  camera3d = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
+  camera3d.position.set(4, 4, 6);
+  camera3d.lookAt(0, 0.3, 0);
+
+  renderer3d = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer3d.setClearColor(0x000000, 0);
+  var rect3d = puck3dContainer.getBoundingClientRect();
+  renderer3d.setSize(rect3d.width, rect3d.height);
+  puck3dContainer.appendChild(renderer3d.domElement);
+
+  var ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  scene3d.add(ambient);
+  var dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  dirLight.position.set(2, 5, 3);
+  scene3d.add(dirLight);
+
+  puckGroup = new THREE.Group();
+  scene3d.add(puckGroup);
+
+  // 1. Particle group (lives outside puckGroup so it doesn't rebuild)
+  particleGroup = new THREE.Group();
+  scene3d.add(particleGroup);
+
+  // 4. Channeling group
+  channelingGroup = new THREE.Group();
+  scene3d.add(channelingGroup);
+
+  createGroundPlane();
+  createPuckLayers(state.currentGrind);
+  initWaterParticles();
+  setupDragControls();
+  updatePuck3DTheme(true);
+  animate3D();
+}
+
+function createGroundPlane() {
+  var col = state.isDark ? 0xD4A574 : 0xB87333;
+  groundGrid = new THREE.GridHelper(8, 16, col, col);
+  groundGrid.material.transparent = true;
+  groundGrid.material.opacity = state.isDark ? 0.10 : 0.13;
+  groundGrid.material.depthWrite = false;
+  groundGrid.position.set(0, -0.1, 0);
+  scene3d.add(groundGrid);
+}
+
+function createPuckLayers(grindVal, brew) {
+  puckMeshes.forEach(function(m) { m.geometry.dispose(); m.material.dispose(); puckGroup.remove(m); });
+  puckWires.forEach(function(m) { m.geometry.dispose(); m.material.dispose(); puckGroup.remove(m); });
+  puckMeshes = []; puckWires = [];
+  if (showerScreen) { showerScreen.geometry.dispose(); showerScreen.material.dispose(); puckGroup.remove(showerScreen); }
+
+  var bcfg = brewConfigs[brew || state.activeBrew];
+  var p3d = bcfg.puck3d;
+  var pR = p3d.radius;
+  var pH = p3d.height;
+
+  var gv = getGrindValues(grindVal);
+  var h1 = pH * gv.phase1End;
+  var h2 = pH * (gv.phase2End - gv.phase1End);
+  var h3 = pH * (1 - gv.phase2End);
+
+  var colors = [0xB87333, 0xC9A84C, 0x8B6914];
+  var fillOps = [0.18, 0.12, 0.07];
+  var wireOps = [0.30, 0.22, 0.14];
+  var heights = [h3, h2, h1]; // bottom to top: bitters, sugars, acids
+  var yOff = 0;
+
+  // Store layer data for particles and channeling
+  puckLayerData = { yOffsets: [], heights: [], totalH: pH, radius: pR };
+
+  heights.forEach(function(h, i) {
+    if (h < 0.01) { puckLayerData.yOffsets.push(yOff); puckLayerData.heights.push(0); return; }
+    var colIdx = 2 - i;
+    var geo = new THREE.CylinderGeometry(pR, pR, h, 32);
+    var mat = new THREE.MeshPhongMaterial({
+      color: colors[colIdx], transparent: true, opacity: fillOps[i],
+      side: THREE.FrontSide, depthWrite: false
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.y = yOff + h / 2;
+    mesh.userData.baseOpacity = fillOps[i];
+    puckGroup.add(mesh);
+    puckMeshes.push(mesh);
+
+    var wGeo = new THREE.CylinderGeometry(pR, pR, h, 32);
+    var wMat = new THREE.MeshBasicMaterial({
+      color: colors[colIdx], wireframe: true, transparent: true, opacity: wireOps[i]
+    });
+    var wire = new THREE.Mesh(wGeo, wMat);
+    wire.position.y = yOff + h / 2;
+    wire.userData.baseOpacity = wireOps[i];
+    puckGroup.add(wire);
+    puckWires.push(wire);
+
+    puckLayerData.yOffsets.push(yOff);
+    puckLayerData.heights.push(h);
+    yOff += h;
+  });
+
+  // Screen on top (shower screen / paper filter / mesh plunger)
+  var sGeo = new THREE.CylinderGeometry(p3d.screenRadius, p3d.screenRadius, 0.04, 32);
+  var sMat = new THREE.MeshPhongMaterial({
+    color: p3d.screenColor, transparent: true, opacity: p3d.screenOpacity,
+    emissive: 0x444444, emissiveIntensity: 0.2
+  });
+  showerScreen = new THREE.Mesh(sGeo, sMat);
+  showerScreen.position.y = yOff + 0.04;
+  showerScreen.userData.baseOpacity = p3d.screenOpacity;
+  puckGroup.add(showerScreen);
+
+  lastPuckGrind = grindVal;
+  lastPuckBrew = brew || state.activeBrew;
+
+  // Rebuild channeling lines when puck changes
+  rebuildChannelingLines();
+}
+
+// ---- 1. WATER FLOW PARTICLES ----
+function initWaterParticles() {
+  var count = 60;
+  var geo = new THREE.SphereGeometry(0.03, 4, 4);
+  for (var i = 0; i < count; i++) {
+    var mat = new THREE.MeshBasicMaterial({
+      color: 0x88CCFF, transparent: true, opacity: 0
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.visible = false;
+    particleGroup.add(mesh);
+    waterParticles.push({
+      mesh: mesh,
+      x: 0, z: 0,
+      y: 0, speed: 0,
+      life: 0, maxLife: 0,
+      active: false
+    });
+  }
+}
+
+function spawnParticle(p) {
+  var r = puckLayerData.radius;
+  var angle = Math.random() * Math.PI * 2;
+  var dist = Math.random() * r * 0.85;
+  p.x = Math.cos(angle) * dist;
+  p.z = Math.sin(angle) * dist;
+  p.y = puckLayerData.totalH + 0.15; // start above shower screen
+
+  // Grind affects speed: fine=slow, coarse=fast
+  var grindSpeed = 0.008 + state.currentGrind * 0.008;
+  p.speed = grindSpeed + Math.random() * grindSpeed * 0.5;
+
+  p.life = 0;
+  p.maxLife = (puckLayerData.totalH + 0.3) / p.speed;
+  p.active = true;
+  p.mesh.visible = true;
+  p.mesh.position.set(p.x, p.y, p.z);
+  p.mesh.material.opacity = 0.5;
+}
+
+function updateWaterParticles() {
+  // Spawn rate: finer grind = fewer particles (water struggles), coarser = more
+  var spawnRate = 0.15 + state.currentGrind * 0.12;
+
+  waterParticles.forEach(function(p) {
+    if (!p.active) {
+      if (Math.random() < spawnRate) spawnParticle(p);
+      return;
+    }
+    p.life++;
+    p.y -= p.speed;
+    p.mesh.position.y = p.y;
+
+    // Fade in at top, fade out at bottom
+    var lifeRatio = p.life / p.maxLife;
+    if (lifeRatio < 0.1) {
+      p.mesh.material.opacity = lifeRatio * 5;
+    } else if (lifeRatio > 0.8) {
+      p.mesh.material.opacity = (1 - lifeRatio) * 5;
+    } else {
+      p.mesh.material.opacity = 0.5;
+    }
+
+    // Particle color warms as it passes through puck (picks up coffee)
+    if (lifeRatio < 0.3) {
+      p.mesh.material.color.setHex(0x88CCFF); // blue water
+    } else if (lifeRatio < 0.6) {
+      p.mesh.material.color.setHex(0xC9A84C); // golden
+    } else {
+      p.mesh.material.color.setHex(0xB87333); // copper
+    }
+
+    if (p.y < -0.2) {
+      p.active = false;
+      p.mesh.visible = false;
+    }
+  });
+}
+
+// ---- 2. COLOR SATURATION ANIMATION ----
+function updateSaturationAnimation() {
+  saturationClock += 0.003; // slow cycle, repeats every ~2100 frames (~35s)
+  if (saturationClock > 1) saturationClock = 0;
+
+  var baseColors = state.isDark
+    ? [0xD4A574, 0xC9A84C, 0xA08030]
+    : [0xB87333, 0xC9A84C, 0x8B6914];
+  var saturatedColors = state.isDark
+    ? [0xE8C090, 0xDDBC60, 0xC09840]
+    : [0xD09050, 0xDDB860, 0xA88020];
+  var baseFillOps = [0.18, 0.12, 0.07];
+
+  // Phase 1 saturates first (0-0.33), phase 2 next (0.2-0.66), phase 3 last (0.4-1.0)
+  var phaseTimings = [
+    { start: 0, end: 0.33 },
+    { start: 0.2, end: 0.66 },
+    { start: 0.4, end: 1.0 }
+  ];
+
+  puckMeshes.forEach(function(m, i) {
+    var colIdx = 2 - i; // mapping: mesh 0=bitters(2), mesh 1=sugars(1), mesh 2=acids(0)
+    var pt = phaseTimings[colIdx];
+    var t = Math.max(0, Math.min(1, (saturationClock - pt.start) / (pt.end - pt.start)));
+    // Smooth ease
+    t = t * t * (3 - 2 * t);
+
+    var baseC = new THREE.Color(baseColors[colIdx]);
+    var satC = new THREE.Color(saturatedColors[colIdx]);
+    baseC.lerp(satC, t * 0.6);
+    m.material.color.copy(baseC);
+
+    var darkMul = state.isDark ? 0.85 : 1.0;
+    m.material.opacity = (baseFillOps[i] + t * 0.08) * darkMul;
+  });
+}
+
+// ---- 3. CREMA LAYER ON TOP ----
+function updateCrema3D() {
+  if (!state.showCrema) {
+    if (cremaMesh3D) { cremaMesh3D.visible = false; }
+    cremaExpand3D = 0;
+    return;
+  }
+
+  // Sync with 2D crema phase so both pulse together
+  var t = state.cremaPhase;
+  var eased = t * t * (3 - 2 * t); // smoothstep
+  var fade = 1 - t; // fade out as ring expands, matching 2D behavior
+
+  var pR = puckLayerData.radius;
+  var cremaR = pR * (0.2 + eased * 0.85);
+  var cremaH = 0.02 + eased * 0.06;
+  var screenY = showerScreen ? showerScreen.position.y : puckLayerData.totalH + 0.04;
+
+  if (cremaMesh3D) {
+    cremaMesh3D.geometry.dispose();
+    puckGroup.remove(cremaMesh3D);
+  }
+
+  var cGeo = new THREE.CylinderGeometry(cremaR, cremaR, cremaH, 32);
+  var cMat = new THREE.MeshPhongMaterial({
+    color: state.isDark ? 0xE8C870 : 0xDAA520,
+    transparent: true,
+    opacity: (0.25 + eased * 0.20) * (0.3 + fade * 0.7),
+    emissive: state.isDark ? 0x806020 : 0x6B4510,
+    emissiveIntensity: (0.3 + eased * 0.2) * (0.3 + fade * 0.7),
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+
+  cremaMesh3D = new THREE.Mesh(cGeo, cMat);
+  cremaMesh3D.position.y = screenY + cremaH / 2 + 0.03;
+  cremaMesh3D.userData.baseOpacity = cMat.opacity;
+  cremaMesh3D.userData.baseEmissive = cMat.emissiveIntensity;
+  puckGroup.add(cremaMesh3D);
+}
+
+// ---- 4. CHANNELING VISUALIZATION ----
+function rebuildChannelingLines() {
+  // Clear existing
+  channelingLines.forEach(function(obj) {
+    obj.geometry.dispose();
+    obj.material.dispose();
+    channelingGroup.remove(obj);
+  });
+  channelingLines = [];
+
+  var gv = getGrindValues(state.currentGrind);
+  var risk = gv.channeling; // 0.08 (coarse) to 0.80 (fine)
+  if (risk < 0.15) return; // no visible channeling for coarse grinds
+
+  var numLines = Math.floor(2 + risk * 4); // 2-5 lines
+  var pR = puckLayerData.radius;
+  var pH = puckLayerData.totalH;
+
+  for (var i = 0; i < numLines; i++) {
+    var angle = (i / numLines) * Math.PI * 2 + Math.random() * 0.5;
+    var dist = pR * (0.15 + Math.random() * 0.65);
+    var x = Math.cos(angle) * dist;
+    var z = Math.sin(angle) * dist;
+
+    var points = [];
+    var segments = 8;
+    for (var s = 0; s <= segments; s++) {
+      var frac = s / segments;
+      var wobble = (Math.random() - 0.5) * 0.08;
+      points.push(new THREE.Vector3(
+        x + wobble,
+        pH * (1 - frac),
+        z + wobble
+      ));
+    }
+
+    var curve = new THREE.CatmullRomCurve3(points);
+    var tubeGeo = new THREE.TubeGeometry(curve, 12, 0.015 + risk * 0.015, 6, false);
+    var tubeMat = new THREE.MeshBasicMaterial({
+      color: state.isDark ? 0xFFD080 : 0xE8A040,
+      transparent: true,
+      opacity: 0.15 + risk * 0.25
+    });
+    var tube = new THREE.Mesh(tubeGeo, tubeMat);
+    tube.userData.baseOpacity = tubeMat.opacity;
+    channelingGroup.add(tube);
+    channelingLines.push(tube);
+  }
+}
+
+function updateChannelingVisibility() {
+  var gv = getGrindValues(state.currentGrind);
+  var needsRebuild = Math.abs(state.currentGrind - lastPuckGrind) > 0.01;
+  if (needsRebuild) return; // will be rebuilt by createPuckLayers
+
+  // Pulse opacity gently
+  var pulse = 0.85 + Math.sin(clock3D * 2) * 0.15;
+  channelingLines.forEach(function(tube) {
+    tube.material.opacity = tube.material.opacity * pulse;
+  });
+}
+
+// ---- 5. TEMPERATURE HEAT GLOW ----
+function updateTemperatureGlow() {
+  if (!state.showTemp) {
+    puckMeshes.forEach(function(m) {
+      m.material.emissive = m.material.emissive || new THREE.Color(0x000000);
+      m.material.emissive.setHex(0x000000);
+      m.material.emissiveIntensity = 0;
+    });
+    return;
+  }
+
+  // Top layer = hottest (near shower screen), bottom = coolest
+  // Meshes: 0=bitters(bottom), 1=sugars(middle), 2=acids(top)
+  var glowColors = state.isDark
+    ? [0x331100, 0x662200, 0x993300]
+    : [0x220800, 0x551500, 0x882200];
+  var glowIntensities = [0.15, 0.35, 0.55];
+
+  // Subtle pulse
+  var pulse = 0.9 + Math.sin(clock3D * 1.5) * 0.1;
+
+  puckMeshes.forEach(function(m, i) {
+    var colIdx = i; // 0=bottom bitters, last=top acids
+    if (colIdx >= glowColors.length) colIdx = glowColors.length - 1;
+    m.material.emissive = m.material.emissive || new THREE.Color(0x000000);
+    m.material.emissive.setHex(glowColors[colIdx]);
+    m.material.emissiveIntensity = glowIntensities[colIdx] * pulse;
+  });
+}
+
+// ---- 6. SLOW IDLE ROTATION ----
+function updateIdleRotation() {
+  if (isDragging3D) {
+    lastDragTime = clock3D;
+    return;
+  }
+  // Wait 2 seconds after drag ends before resuming
+  var timeSinceDrag = clock3D - lastDragTime;
+  if (timeSinceDrag < 2.0) return;
+
+  // Ease in the rotation speed after the pause
+  var easeIn = Math.min(1, (timeSinceDrag - 2.0) / 1.5);
+  // 1 revolution per 30 seconds = 2*PI / (30*60) per frame at 60fps
+  var rotSpeed = (Math.PI * 2) / (30 * 60);
+  orbitTheta += rotSpeed * easeIn;
+}
+
+// ---- LEGEND HIGHLIGHT SYNC ----
+// Maps 2D legend hover to 3D emphasis: highlighted layer brightens,
+// everything else dims. null = no highlight, show everything normally.
+function updateHighlight3D() {
+  var hl = state.highlightedLayer;
+  if (!hl) {
+    // Reset all to normal
+    var dimTarget = 1.0;
+  } else {
+    var dimTarget = 0.0; // will set per-element
+  }
+
+  // Helper: return target opacity multiplier for a given layer name
+  function layerMul(name) {
+    if (!hl) return 1.0;
+    return hl === name ? 1.4 : 0.08;
+  }
+
+  // Puck meshes + wires = "pressure" and "phases"
+  var puckMul = Math.max(layerMul('pressure'), layerMul('phases'));
+  puckMeshes.forEach(function(m) {
+    m.material.opacity = m.userData.baseOpacity * puckMul;
+  });
+  puckWires.forEach(function(m) {
+    m.material.opacity = m.userData.baseOpacity * puckMul;
+    // Brighten wireframe color when highlighted
+    if (hl === 'pressure') {
+      m.material.color.setHex(state.isDark ? 0xFFD8B0 : 0xD49555);
+    }
+  });
+
+  // Shower screen dims with everything except pressure
+  if (showerScreen) {
+    showerScreen.material.opacity = showerScreen.userData.baseOpacity * puckMul;
+  }
+
+  // Water particles = "flow"
+  var flowMul = layerMul('flow');
+  waterParticles.forEach(function(p) {
+    if (p.active) {
+      // Particles use flow highlight; also brighten for pressure
+      var mul = Math.max(flowMul, layerMul('pressure'));
+      p.mesh.material.opacity = Math.min(1, p.mesh.material.opacity * mul);
+    }
+  });
+
+  // Channeling lines
+  var chanMul = layerMul('channeling');
+  channelingLines.forEach(function(tube) {
+    tube.material.opacity = tube.userData.baseOpacity * chanMul;
+  });
+
+  // Crema disc
+  if (cremaMesh3D && cremaMesh3D.visible) {
+    var cremMul = layerMul('crema');
+    cremaMesh3D.material.opacity = cremaMesh3D.userData.baseOpacity * cremMul;
+    cremaMesh3D.material.emissiveIntensity = cremaMesh3D.userData.baseEmissive * cremMul;
+  }
+
+  // Temperature glow on puck meshes
+  if (hl === 'temp' && state.showTemp) {
+    // Boost temperature glow
+    puckMeshes.forEach(function(m) {
+      m.material.emissiveIntensity = (m.material.emissiveIntensity || 0) * 1.8;
+    });
+  } else if (hl && hl !== 'temp') {
+    // Suppress temperature glow when another layer is highlighted
+    puckMeshes.forEach(function(m) {
+      m.material.emissiveIntensity = (m.material.emissiveIntensity || 0) * 0.1;
+    });
+  }
+
+  // Ground grid dims when anything is highlighted
+  if (groundGrid) {
+    groundGrid.material.opacity = hl
+      ? (state.isDark ? 0.03 : 0.04)
+      : (state.isDark ? 0.10 : 0.13);
+  }
+}
+
+function updatePuck3D() {
+  if (!scene3d) return;
+  var grindDelta = Math.abs(state.currentGrind - lastPuckGrind);
+  var brewChanged = state.activeBrew !== lastPuckBrew;
+  if (grindDelta > 0.01 || brewChanged) {
+    createPuckLayers(state.currentGrind, state.activeBrew);
+    updatePuck3DTheme(true);
+  }
+}
+
+function updatePuck3DTheme(force) {
+  if (!scene3d) return;
+  if (!force && state.isDark === lastPuckThemeDark) return;
+  lastPuckThemeDark = state.isDark;
+
+  // Base theme colors are handled by saturation animation now,
+  // but we still need to update wires and grid
+  var colors = [0xB87333, 0xC9A84C, 0x8B6914];
+  var darkColors = [0xD4A574, 0xC9A84C, 0xA08030];
+  var wireOps = [0.30, 0.22, 0.14];
+
+  puckWires.forEach(function(m, i) {
+    var colIdx = 2 - i;
+    m.material.color.setHex(state.isDark ? darkColors[colIdx] : colors[colIdx]);
+    m.material.opacity = state.isDark ? wireOps[i] * 0.85 : wireOps[i];
+  });
+  if (groundGrid) {
+    groundGrid.material.opacity = state.isDark ? 0.10 : 0.13;
+    var gc = new THREE.Color(state.isDark ? 0xD4A574 : 0xB87333);
+    if (groundGrid.material.color) groundGrid.material.color.copy(gc);
+  }
+
+  // Rebuild channeling with correct theme colors
+  rebuildChannelingLines();
+}
+
+function resize3D() {
+  if (!renderer3d) return;
+  var rect3d = puck3dContainer.getBoundingClientRect();
+  if (rect3d.width === 0 || rect3d.height === 0) return;
+  renderer3d.setSize(rect3d.width, rect3d.height);
+  camera3d.aspect = rect3d.width / rect3d.height;
+  camera3d.updateProjectionMatrix();
+}
+
+function setupDragControls() {
+  var el = renderer3d.domElement;
+  el.addEventListener('mousedown', function(e) {
+    isDragging3D = true;
+    dragStart3D.x = e.clientX; dragStart3D.y = e.clientY;
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!isDragging3D) return;
+    orbitTheta -= (e.clientX - dragStart3D.x) * 0.008;
+    orbitPhi = Math.max(0.15, Math.min(1.45, orbitPhi - (e.clientY - dragStart3D.y) * 0.008));
+    dragStart3D.x = e.clientX; dragStart3D.y = e.clientY;
+  });
+  window.addEventListener('mouseup', function() { isDragging3D = false; });
+
+  el.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+      isDragging3D = true;
+      dragStart3D.x = e.touches[0].clientX; dragStart3D.y = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  el.addEventListener('touchmove', function(e) {
+    if (!isDragging3D || e.touches.length !== 1) return;
+    orbitTheta -= (e.touches[0].clientX - dragStart3D.x) * 0.008;
+    orbitPhi = Math.max(0.15, Math.min(1.45, orbitPhi - (e.touches[0].clientY - dragStart3D.y) * 0.008));
+    dragStart3D.x = e.touches[0].clientX; dragStart3D.y = e.touches[0].clientY;
+  }, { passive: true });
+  el.addEventListener('touchend', function() { isDragging3D = false; }, { passive: true });
+
+  el.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    orbitRadius = Math.max(4, Math.min(22, orbitRadius + e.deltaY * 0.01));
+  }, { passive: false });
+}
+
+function updateCamera3D() {
+  var bcfg = brewConfigs[state.activeBrew];
+  var lookY = bcfg.puck3d.height * 0.4;
+  var lookTarget = new THREE.Vector3(0, lookY, 0);
+  camera3d.position.x = lookTarget.x + orbitRadius * Math.sin(orbitPhi) * Math.sin(orbitTheta);
+  camera3d.position.y = lookTarget.y + orbitRadius * Math.cos(orbitPhi);
+  camera3d.position.z = lookTarget.z + orbitRadius * Math.sin(orbitPhi) * Math.cos(orbitTheta);
+  camera3d.lookAt(lookTarget);
+}
+
+function animate3D() {
+  requestAnimationFrame(animate3D);
+  if (!renderer3d) return;
+
+  clock3D += 1 / 60; // approximate frame time
+
+  updateIdleRotation();        // 6. Idle rotation
+  updateCamera3D();
+  updatePuck3D();
+  updatePuck3DTheme();
+  updateSaturationAnimation(); // 2. Color saturation
+  updateWaterParticles();      // 1. Water particles
+  updateCrema3D();             // 3. Crema disc
+  updateChannelingVisibility();// 4. Channeling pulse
+  updateTemperatureGlow();     // 5. Temperature glow
+  updateHighlight3D();         // Legend hover sync
+
+  renderer3d.render(scene3d, camera3d);
+}
+
+init3D();
+
+// ============================================================
+// GUIDED TOUR
+// ============================================================
+var tour = {
+  active: false,
+  paused: false,
+  currentChapter: -1,
+  audio: null,
+  actionIndex: 0,
+  savedState: null,
+  tickRAF: null,
+  blurbOriginalHTML: '',
+  charEls: [],
+  audioDuration: 0
+};
+
+var tourChapterTitles = [
+  'What you\u2019re tasting',
+  'Three phases of extraction',
+  'Brew method trade-offs',
+  'Temperature\u2019s role',
+  'Pressure and crema',
+  'When things go wrong',
+  'Dialing in your shot'
+];
+
+var tourChapters = [
+  {
+    id: '01-overview',
+    audio: 'audio/01-overview.mp3',
+    caption: 'Every espresso shot extracts over a thousand compounds in a precise sequence. Bright acids dissolve first, then sugars and caramels, and finally bitter tannins. Understanding this sequence is the key to dialing in flavor.',
+    actions: [
+      { time: 0, fn: function() { tourAction.highlightLayer('pressure'); } },
+      { time: 8, fn: function() { tourAction.highlightLayer(null); tourAction.hoverPhase(1); } },
+      { time: 11, fn: function() { tourAction.hoverPhase(2); } },
+      { time: 14, fn: function() { tourAction.hoverPhase(3); } },
+      { time: 17, fn: function() { tourAction.hoverPhase(0); } }
+    ]
+  },
+  {
+    id: '02-phases',
+    audio: 'audio/02-phases.mp3',
+    caption: 'Phase one extracts bright fruit acids \u2014 citric, malic, phosphoric. Phase two is the sweet spot where sugars and caramels peak. Phase three brings caffeine, tannins, and bitterness. The goal is to maximize phase two.',
+    actions: [
+      { time: 0, fn: function() { tourAction.highlightLayer('phases'); tourAction.startOrbit(); } },
+      { time: 5, fn: function() { tourAction.hoverPhase(1); } },
+      { time: 12, fn: function() { tourAction.hoverPhase(0); } },
+      { time: 13, fn: function() { tourAction.hoverPhase(2); } },
+      { time: 20, fn: function() { tourAction.hoverPhase(0); } },
+      { time: 21, fn: function() { tourAction.hoverPhase(3); } },
+      { time: 27, fn: function() { tourAction.hoverPhase(0); } },
+      { time: 28, fn: function() { tourAction.highlightLayer(null); tourAction.stopOrbit(); } }
+    ]
+  },
+  {
+    id: '03-brew-methods',
+    audio: 'audio/03-brew-methods.mp3',
+    caption: 'Espresso uses 9 bars of pressure for a 25-second shot at 10% TDS. Pour-over relies on gravity over three and a half minutes at just 1.3%. Each method shapes the extraction curve differently.',
+    actions: [
+      { time: 0, fn: function() { tourAction.spotlightElement('#brewToggle'); } },
+      { time: 8, fn: function() { tourAction.setBrew('pourover'); } },
+      { time: 16, fn: function() { tourAction.setBrew('espresso'); } },
+      { time: 22, fn: function() { tourAction.unspotlightAll(); } }
+    ]
+  },
+  {
+    id: '04-temperature',
+    audio: 'audio/04-temperature.mp3',
+    caption: 'Brew water at 93 degrees Celsius extracts aggressively at the center of the puck. Temperature drops as water flows outward through the grounds. Too hot over-extracts; too cool under-extracts.',
+    actions: [
+      { time: 0, fn: function() { tourAction.ensureTemp(true); tourAction.highlightLayer('temp'); } },
+      { time: 6, fn: function() { tourAction.spotlightElement('.chip.temp'); } },
+      { time: 14, fn: function() { tourAction.highlightLayer(null); tourAction.unspotlightAll(); } }
+    ]
+  },
+  {
+    id: '05-pressure-crema',
+    audio: 'audio/05-pressure-crema.mp3',
+    caption: 'Nine bars of pressure force water through the puck, creating the copper-toned pressure gradient you see here. That pressure also emulsifies CO2 and oils into crema \u2014 the golden foam unique to espresso.',
+    actions: [
+      { time: 0, fn: function() { tourAction.ensureCrema(true); tourAction.highlightLayer('pressure'); } },
+      { time: 8, fn: function() { tourAction.highlightLayer('crema'); } },
+      { time: 12, fn: function() { tourAction.spotlightElement('.chip.crema'); } },
+      { time: 16, fn: function() { tourAction.highlightLayer(null); tourAction.unspotlightAll(); } }
+    ]
+  },
+  {
+    id: '06-problems',
+    audio: 'audio/06-problems.mp3',
+    caption: 'Channeling happens when water finds cracks in the puck and rushes through, over-extracting those paths while leaving the rest under-extracted. Resistance zones form where the puck is tamped too tightly, choking the flow.',
+    actions: [
+      { time: 0, fn: function() { tourAction.highlightLayer('channeling'); } },
+      { time: 10, fn: function() { tourAction.highlightLayer('resistance'); } },
+      { time: 18, fn: function() { tourAction.highlightLayer(null); } }
+    ]
+  },
+  {
+    id: '07-dialing-in',
+    audio: 'audio/07-dialing-in.mp3',
+    caption: 'Dialing in means adjusting grind size to control extraction. Finer grinds increase resistance and channeling risk but extract more flavor. Coarser grinds flow freely but may under-extract. Medium-fine is the sweet spot for most espresso.',
+    actions: [
+      { time: 0, fn: function() { tourAction.spotlightElement('#grindGroup'); } },
+      { time: 4, fn: function() { tourAction.setGrind(0); } },
+      { time: 8, fn: function() { tourAction.setGrind(2); } },
+      { time: 12, fn: function() { tourAction.setGrind(3); } },
+      { time: 16, fn: function() { tourAction.setGrind(1); tourAction.unspotlightAll(); } }
+    ]
+  }
+];
+
+var tourAction = {
+  setGrind: function(g) {
+    state.targetGrind = g;
+    document.querySelectorAll('#grindGroup .gbtn').forEach(function(b) {
+      b.classList.toggle('on', parseInt(b.dataset.grind) === g);
+    });
+  },
+  setBrew: function(brew) {
+    if (brew === state.activeBrew) return;
+    var btn = document.querySelector('#brewToggle .gbtn[data-brew="' + brew + '"]');
+    if (btn) btn.click();
+  },
+  ensureTemp: function(on) {
+    if (state.showTemp !== on) {
+      state.showTemp = on;
+      document.getElementById('tempToggle').classList.toggle('on', on);
+    }
+  },
+  ensureCrema: function(on) {
+    if (state.showCrema !== on) {
+      state.showCrema = on;
+      document.getElementById('cremaToggle').classList.toggle('on', on);
+    }
+  },
+  highlightLayer: function(name) {
+    state.highlightedLayer = name;
+    var items = document.querySelectorAll('[data-legend]');
+    items.forEach(function(el) {
+      if (name) {
+        el.classList.toggle('dimmed', el.dataset.legend !== name);
+      } else {
+        el.classList.remove('dimmed');
+      }
+    });
+  },
+  hoverPhase: function(n) {
+    state.hoveredPhase = n;
+    phaseTooltipEl.classList.remove('visible');
+  },
+  startOrbit: function() {
+    tour.orbiting = true;
+    tour.orbitStart = orbitTheta;
+  },
+  stopOrbit: function() {
+    tour.orbiting = false;
+    puck3dContainer.style.opacity = '';
+  },
+  spotlightElement: function(selector) {
+    tourAction.unspotlightAll();
+    var el = document.querySelector(selector);
+    if (el) el.classList.add('tour-spotlight');
+  },
+  unspotlightAll: function() {
+    document.querySelectorAll('.tour-spotlight').forEach(function(el) {
+      el.classList.remove('tour-spotlight');
+    });
+  },
+  resetDefaults: function() {
+    tourAction.setGrind(1);
+    tourAction.setBrew('espresso');
+    tourAction.ensureTemp(true);
+    tourAction.ensureCrema(true);
+    tourAction.highlightLayer(null);
+    tourAction.hoverPhase(0);
+    tourAction.unspotlightAll();
+  }
+};
+
+// ============================================================
+// PNG EXPORT
+// ============================================================
+document.getElementById('exportPNG').addEventListener('click', function() {
+  var dpr = window.devicePixelRatio || 1;
+  var rect2d = canvas.getBoundingClientRect();
+  var offscreen = document.createElement('canvas');
+  offscreen.width = rect2d.width * dpr;
+  offscreen.height = rect2d.height * dpr;
+  var offCtx = offscreen.getContext('2d');
+  offCtx.drawImage(canvas, 0, 0);
+
+  if (renderer3d) {
+    renderer3d.render(scene3d, camera3d);
+    var rect3d = puck3dContainer.getBoundingClientRect();
+    var x3d = (rect3d.left - rect2d.left) * dpr;
+    var y3d = (rect3d.top - rect2d.top) * dpr;
+    offCtx.drawImage(renderer3d.domElement, x3d, y3d, rect3d.width * dpr, rect3d.height * dpr);
+  }
+
+  var grindLabels = ['Fine', 'Med-Fine', 'Medium', 'Coarse'];
+  var grindLabel = grindLabels[Math.round(state.targetGrind)] + ' Grind';
+  var brewLabel = state.activeBrew.charAt(0).toUpperCase() + state.activeBrew.slice(1);
+  var tempLabel = 'Temp ' + (state.showTemp ? 'on' : 'off');
+  var cremaLabel = 'Crema ' + (state.showCrema ? 'on' : 'off');
+  var now = new Date();
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var dateLabel = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+  var watermark = grindLabel + ' \u00B7 ' + brewLabel + ' \u00B7 ' + tempLabel + ' \u00B7 ' + cremaLabel + ' \u00B7 ' + dateLabel;
+
+  var fontSize = 12 * dpr;
+  offCtx.font = '500 ' + fontSize + 'px Karla, system-ui, sans-serif';
+  var textW = offCtx.measureText(watermark).width;
+  var padX = 10 * dpr;
+  var padY = 6 * dpr;
+  var pillW = textW + padX * 2;
+  var pillH = fontSize + padY * 2;
+  var pillX = 12 * dpr;
+  var pillY = offscreen.height - pillH - 12 * dpr;
+
+  offCtx.fillStyle = state.isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.65)';
+  offCtx.fillRect(pillX, pillY, pillW, pillH);
+  offCtx.fillStyle = state.isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.6)';
+  offCtx.textBaseline = 'middle';
+  offCtx.textAlign = 'left';
+  offCtx.fillText(watermark, pillX + padX, pillY + pillH / 2);
+
+  var link = document.createElement('a');
+  link.download = 'espresso-anatomy-' + state.activeBrew + '-grind' + Math.round(state.targetGrind) + '.png';
+  link.href = offscreen.toDataURL('image/png');
+  link.click();
+});
+
+// ============================================================
+// WEBM RECORDING
+// ============================================================
+var isRecording = false;
+
+document.getElementById('recordBtn').addEventListener('click', function() {
+  if (tour.active || isRecording) return;
+  if (typeof MediaRecorder === 'undefined') {
+    alert('MediaRecorder is not supported in this browser.');
+    return;
+  }
+
+  isRecording = true;
+  var recordBtn = this;
+  var recIndicator = document.getElementById('recIndicator');
+  var recCountdown = document.getElementById('recCountdown');
+  var recordIcon = recordBtn.querySelector('.material-symbols-outlined');
+
+  recordBtn.classList.add('recording');
+  recordIcon.textContent = 'stop';
+  recIndicator.style.display = 'flex';
+
+  var dpr = window.devicePixelRatio || 1;
+  var rect2d = canvas.getBoundingClientRect();
+  var recCanvas = document.createElement('canvas');
+  recCanvas.width = rect2d.width * dpr;
+  recCanvas.height = rect2d.height * dpr;
+  var recCtx = recCanvas.getContext('2d');
+
+  var recRAF;
+  function recDraw() {
+    recCtx.clearRect(0, 0, recCanvas.width, recCanvas.height);
+    recCtx.drawImage(canvas, 0, 0);
+    if (renderer3d) {
+      var rect3d = puck3dContainer.getBoundingClientRect();
+      var x3d = (rect3d.left - rect2d.left) * dpr;
+      var y3d = (rect3d.top - rect2d.top) * dpr;
+      recCtx.drawImage(renderer3d.domElement, x3d, y3d, rect3d.width * dpr, rect3d.height * dpr);
+    }
+    recRAF = requestAnimationFrame(recDraw);
+  }
+  recDraw();
+
+  var stream = recCanvas.captureStream(30);
+  var mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9' : 'video/webm;codecs=vp8';
+  var recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: 5000000 });
+  var chunks = [];
+
+  recorder.ondataavailable = function(e) {
+    if (e.data.size > 0) chunks.push(e.data);
+  };
+
+  recorder.onstop = function() {
+    cancelAnimationFrame(recRAF);
+    isRecording = false;
+    recordBtn.classList.remove('recording');
+    recordIcon.textContent = 'fiber_manual_record';
+    recIndicator.style.display = 'none';
+
+    var blob = new Blob(chunks, { type: mimeType });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.download = 'espresso-anatomy-' + state.activeBrew + '.webm';
+    link.href = url;
+    link.click();
+    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+  };
+
+  recorder.start();
+
+  var remaining = 5;
+  recCountdown.textContent = remaining + 's';
+  var countdownInterval = setInterval(function() {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      recCountdown.textContent = '0s';
+      recorder.stop();
+    } else {
+      recCountdown.textContent = remaining + 's';
+    }
+  }, 1000);
+});
+
+// ============================================================
+// TOUR ENGINE
+// ============================================================
+function tourStart() {
+  if (tour.active) return;
+  tour.savedState = {
+    targetGrind: state.targetGrind,
+    activeBrew: state.activeBrew,
+    showTemp: state.showTemp,
+    showCrema: state.showCrema,
+    highlightedLayer: state.highlightedLayer,
+    hoveredPhase: state.hoveredPhase
+  };
+  var blurbEl = document.querySelector('.coffee-blurb');
+  tour.blurbOriginalHTML = blurbEl.innerHTML;
+
+  tour.active = true;
+  tour.paused = false;
+  tour.currentChapter = -1;
+  document.body.classList.add('tour-active');
+
+  var progressEl = document.getElementById('tourProgress');
+  progressEl.innerHTML = '';
+  tourChapters.forEach(function(ch, i) {
+    var pip = document.createElement('div');
+    pip.className = 'tour-pip';
+    pip.dataset.index = i;
+    progressEl.appendChild(pip);
+  });
+
+  tourNextChapter();
+}
+
+function tourNextChapter() {
+  tour.currentChapter++;
+  if (tour.currentChapter >= tourChapters.length) {
+    tourEnd();
+    return;
+  }
+
+  var chapter = tourChapters[tour.currentChapter];
+  tour.actionIndex = 0;
+
+  document.querySelectorAll('.tour-pip').forEach(function(pip, i) {
+    pip.classList.remove('active', 'done');
+    if (i < tour.currentChapter) pip.classList.add('done');
+    else if (i === tour.currentChapter) pip.classList.add('active');
+  });
+
+  var blurbEl = document.querySelector('.coffee-blurb');
+  var chars = chapter.caption.split('');
+  var chapterTitle = tourChapterTitles[tour.currentChapter] || 'Guided Tour';
+  blurbEl.innerHTML = '<h3>' + chapterTitle + '</h3><p>' +
+    chars.map(function(ch, i) {
+      if (ch === ' ') return '<span class="tour-char" data-ci="' + i + '"> </span>';
+      return '<span class="tour-char" data-ci="' + i + '">' + ch + '</span>';
+    }).join('') + '</p>';
+  tour.charEls = blurbEl.querySelectorAll('.tour-char');
+  tour.audioDuration = 0;
+
+  if (tour.audio) {
+    tour.audio.pause();
+    tour.audio.removeAttribute('src');
+    tour.audio.load();
+  }
+  tour.audio = new Audio(chapter.audio);
+  tour.audio.addEventListener('ended', function() { tourNextChapter(); });
+  tour.audio.addEventListener('error', function() {
+    setTimeout(function() {
+      if (tour.active && tour.currentChapter === tourChapters.indexOf(chapter)) {
+        tourNextChapter();
+      }
+    }, 8000);
+  });
+  tour.audio.play().catch(function() {
+    setTimeout(function() {
+      if (tour.active && tour.currentChapter === tourChapters.indexOf(chapter)) {
+        tourNextChapter();
+      }
+    }, 8000);
+  });
+
+  tourTick();
+}
+
+function tourTick() {
+  if (!tour.active) return;
+  if (tour.paused) {
+    tour.tickRAF = requestAnimationFrame(tourTick);
+    return;
+  }
+
+  var chapter = tourChapters[tour.currentChapter];
+  if (!chapter) return;
+
+  var currentTime = tour.audio ? tour.audio.currentTime : 0;
+
+  while (tour.actionIndex < chapter.actions.length &&
+         currentTime >= chapter.actions[tour.actionIndex].time) {
+    chapter.actions[tour.actionIndex].fn();
+    tour.actionIndex++;
+  }
+
+  if (tour.audio && tour.audio.duration && tour.audio.duration > 0) {
+    tour.audioDuration = tour.audio.duration;
+  }
+  if (tour.audioDuration > 0 && tour.charEls && tour.charEls.length > 0) {
+    var charWindow = tour.audioDuration * 0.92;
+    var charsToReveal = Math.floor((currentTime / charWindow) * tour.charEls.length);
+    charsToReveal = Math.min(charsToReveal, tour.charEls.length);
+    for (var ci = 0; ci < charsToReveal; ci++) {
+      tour.charEls[ci].classList.add('revealed');
+    }
+  }
+
+  if (tour.orbiting) {
+    orbitTheta = tour.orbitStart + Math.sin(currentTime * 0.25) * 0.6;
+    orbitPhi = 1.1 + Math.sin(currentTime * 0.15) * 0.12;
+    puck3dContainer.style.opacity = '0.85';
+  }
+
+  tour.tickRAF = requestAnimationFrame(tourTick);
+}
+
+function tourEnd() {
+  tour.active = false;
+  tour.paused = false;
+  document.body.classList.remove('tour-active');
+
+  if (tour.audio) {
+    tour.audio.pause();
+    tour.audio.removeAttribute('src');
+    tour.audio.load();
+    tour.audio = null;
+  }
+
+  if (tour.tickRAF) {
+    cancelAnimationFrame(tour.tickRAF);
+    tour.tickRAF = null;
+  }
+
+  tour.orbiting = false;
+  puck3dContainer.style.opacity = '';
+
+  var blurbEl = document.querySelector('.coffee-blurb');
+  blurbEl.innerHTML = tour.blurbOriginalHTML;
+  tour.charEls = [];
+
+  tourAction.resetDefaults();
+
+  if (tour.savedState) {
+    tourAction.setGrind(tour.savedState.targetGrind);
+    if (tour.savedState.activeBrew !== 'espresso') tourAction.setBrew(tour.savedState.activeBrew);
+    tourAction.ensureTemp(tour.savedState.showTemp);
+    tourAction.ensureCrema(tour.savedState.showCrema);
+    tour.savedState = null;
+  }
+
+  pushStateToURL();
+}
+
+function tourTogglePause() {
+  if (!tour.active) return;
+  tour.paused = !tour.paused;
+  var pauseBtn = document.getElementById('tourPauseBtn');
+  pauseBtn.querySelector('.material-symbols-outlined').textContent =
+    tour.paused ? 'play_arrow' : 'pause';
+  if (tour.audio) {
+    if (tour.paused) tour.audio.pause();
+    else tour.audio.play().catch(function() {});
+  }
+}
+
+function tourSkip() {
+  if (!tour.active) return;
+  tourAction.highlightLayer(null);
+  tourAction.hoverPhase(0);
+  tourAction.unspotlightAll();
+  if (tour.audio) tour.audio.pause();
+  tourNextChapter();
+}
+
+document.getElementById('tourStartBtn').addEventListener('click', tourStart);
+document.getElementById('tourPauseBtn').addEventListener('click', tourTogglePause);
+document.getElementById('tourSkipBtn').addEventListener('click', tourSkip);
+document.getElementById('tourExitBtn').addEventListener('click', tourEnd);
+
+document.addEventListener('keydown', function(e) {
+  if (!tour.active) return;
+  if (e.key === 'Escape') { e.preventDefault(); tourEnd(); }
+  else if (e.key === ' ') { e.preventDefault(); tourTogglePause(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); tourSkip(); }
+});
+
+tourChapters.forEach(function(ch) {
+  var link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.href = ch.audio;
+  link.as = 'audio';
+  document.head.appendChild(link);
+});
+</script>
+</body>
+</html>
