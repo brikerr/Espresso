@@ -40,6 +40,7 @@ Coffee-Anatomy/
 ├── vercel.json             # Deployment config and cache headers
 ├── PRD.md                  # This document
 ├── DESIGN-SYSTEM.md        # Visual language specification
+├── ROADMAP.md              # Feature roadmap and enhancement backlog
 ├── scripts/
 │   └── generate-audio.js   # ElevenLabs TTS narration generator
 └── audio/
