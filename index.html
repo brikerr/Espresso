@@ -868,28 +868,35 @@ document.getElementById('cremaToggle').addEventListener('click', function() {
   pushStateToURL();
 });
 
+var activeStatAnimations = {};
 function animateStatValue(element, fromVal, toVal, prefix, suffix, duration, decimals) {
-  var startTime = null;
+  var id = element.id || element.textContent;
+  // Cancel any in-flight animation on this element
+  if (activeStatAnimations[id]) activeStatAnimations[id].cancelled = true;
+
   var from = parseFloat(fromVal);
   var to = parseFloat(toVal);
   decimals = decimals || 0;
   if (isNaN(from) || isNaN(to) || from === to) {
-    element.textContent = prefix + (decimals > 0 ? toVal.toFixed ? toVal.toFixed(decimals) : toVal : toVal) + suffix;
+    element.textContent = prefix + (decimals > 0 ? to.toFixed(decimals) : to) + suffix;
     return;
   }
-  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+  var handle = { cancelled: false };
+  activeStatAnimations[id] = handle;
+  var startTime = null;
+
+  function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
   function tick(ts) {
+    if (handle.cancelled) return;
     if (!startTime) startTime = ts;
     var elapsed = ts - startTime;
     var progress = Math.min(elapsed / duration, 1);
-    var eased = easeOutCubic(progress);
+    var eased = easeOutQuart(progress);
     var current = from + (to - from) * eased;
-    if (decimals > 0) {
-      element.textContent = prefix + current.toFixed(decimals) + suffix;
-    } else {
-      element.textContent = prefix + Math.round(current) + suffix;
-    }
+    element.textContent = prefix + current.toFixed(decimals) + suffix;
     if (progress < 1) requestAnimationFrame(tick);
+    else delete activeStatAnimations[id];
   }
   requestAnimationFrame(tick);
 }
@@ -914,12 +921,9 @@ document.getElementById('brewToggle').addEventListener('click', function(e) {
     b.classList.toggle('on', parseInt(b.dataset.grind) === recommendedGrind);
   });
 
-  var duration = 600;
-  var oldTDS = oldCfg.tdsNum;
-  var newTDS = newCfg.tdsNum;
-  var dec = (newTDS < 5 || oldTDS < 5) ? 1 : 0;
-  animateStatValue(document.getElementById('statTDS'), oldTDS, newTDS, '~', '%', duration, dec);
-  animateStatValue(document.getElementById('statYield'), oldCfg.yieldNum, newCfg.yieldNum, '', '%', duration, 0);
+  var duration = 1200;
+  animateStatValue(document.getElementById('statTDS'), oldCfg.tdsNum, newCfg.tdsNum, '~', '%', duration, 1);
+  animateStatValue(document.getElementById('statYield'), oldCfg.yieldNum, newCfg.yieldNum, '', '%', duration, 1);
   document.getElementById('statDose').textContent = newCfg.dose;
   document.getElementById('statRatio').textContent = newCfg.ratio;
   document.getElementById('statTime').textContent = newCfg.time;
@@ -2352,10 +2356,9 @@ var tourAction = {
     });
 
     // Animate stats
-    var duration = 600;
-    var dec = (newCfg.tdsNum < 5 || oldCfg.tdsNum < 5) ? 1 : 0;
-    animateStatValue(document.getElementById('statTDS'), oldCfg.tdsNum, newCfg.tdsNum, '~', '%', duration, dec);
-    animateStatValue(document.getElementById('statYield'), oldCfg.yieldNum, newCfg.yieldNum, '', '%', duration, 0);
+    var duration = 1200;
+    animateStatValue(document.getElementById('statTDS'), oldCfg.tdsNum, newCfg.tdsNum, '~', '%', duration, 1);
+    animateStatValue(document.getElementById('statYield'), oldCfg.yieldNum, newCfg.yieldNum, '', '%', duration, 1);
     document.getElementById('statDose').textContent = newCfg.dose;
     document.getElementById('statRatio').textContent = newCfg.ratio;
     document.getElementById('statTime').textContent = newCfg.time;
