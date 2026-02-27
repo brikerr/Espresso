@@ -2549,21 +2549,40 @@ function tourNextChapter() {
     tour.audio.removeAttribute('src');
     tour.audio.load();
   }
+  // Estimate a fallback duration for text reveal when audio is unavailable
+  // ~140 words per minute reading pace
+  var wordCount = chapter.caption.split(/\s+/).length;
+  var fallbackDuration = Math.max(8, (wordCount / 140) * 60 + 2);
+  tour.fallbackStart = 0;
+  tour.usingFallback = false;
+
   tour.audio = new Audio(chapter.audio);
   tour.audio.addEventListener('ended', function() { tourNextChapter(); });
+  tour.audio.addEventListener('loadedmetadata', function() {
+    // Audio loaded successfully — use real duration
+    tour.usingFallback = false;
+  });
   tour.audio.addEventListener('error', function() {
+    // Audio unavailable — fall back to timed text reveal
+    tour.usingFallback = true;
+    tour.audioDuration = fallbackDuration;
+    tour.fallbackStart = performance.now() / 1000;
+    // Auto-advance after fallback duration
     setTimeout(function() {
       if (tour.active && tour.currentChapter === tourChapters.indexOf(chapter)) {
         tourNextChapter();
       }
-    }, 8000);
+    }, fallbackDuration * 1000);
   });
   tour.audio.play().catch(function() {
+    tour.usingFallback = true;
+    tour.audioDuration = fallbackDuration;
+    tour.fallbackStart = performance.now() / 1000;
     setTimeout(function() {
       if (tour.active && tour.currentChapter === tourChapters.indexOf(chapter)) {
         tourNextChapter();
       }
-    }, 8000);
+    }, fallbackDuration * 1000);
   });
 
   tourTick();
@@ -2579,17 +2598,27 @@ function tourTick() {
   var chapter = tourChapters[tour.currentChapter];
   if (!chapter) return;
 
-  var currentTime = tour.audio ? tour.audio.currentTime : 0;
+  // Determine current playback time — from audio or from fallback clock
+  var currentTime;
+  if (tour.usingFallback) {
+    currentTime = (performance.now() / 1000) - tour.fallbackStart;
+  } else {
+    currentTime = tour.audio ? tour.audio.currentTime : 0;
+  }
 
+  // Fire timed actions
   while (tour.actionIndex < chapter.actions.length &&
          currentTime >= chapter.actions[tour.actionIndex].time) {
     chapter.actions[tour.actionIndex].fn();
     tour.actionIndex++;
   }
 
-  if (tour.audio && tour.audio.duration && tour.audio.duration > 0) {
+  // Update audio duration from loaded audio
+  if (!tour.usingFallback && tour.audio && tour.audio.duration && tour.audio.duration > 0) {
     tour.audioDuration = tour.audio.duration;
   }
+
+  // Reveal characters progressively
   if (tour.audioDuration > 0 && tour.charEls && tour.charEls.length > 0) {
     var charWindow = tour.audioDuration * 0.92;
     var charsToReveal = Math.floor((currentTime / charWindow) * tour.charEls.length);
@@ -2651,6 +2680,15 @@ function tourTogglePause() {
   var pauseBtn = document.getElementById('tourPauseBtn');
   pauseBtn.querySelector('.material-symbols-outlined').textContent =
     tour.paused ? 'play_arrow' : 'pause';
+  if (tour.usingFallback) {
+    if (tour.paused) {
+      tour.fallbackPausedAt = performance.now() / 1000;
+    } else {
+      // Shift fallbackStart forward by the paused duration
+      var pausedFor = (performance.now() / 1000) - tour.fallbackPausedAt;
+      tour.fallbackStart += pausedFor;
+    }
+  }
   if (tour.audio) {
     if (tour.paused) tour.audio.pause();
     else tour.audio.play().catch(function() {});
