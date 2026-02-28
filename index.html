@@ -2591,11 +2591,6 @@ function tourStart() {
   tour.currentChapter = -1;
   document.body.classList.add('tour-active');
 
-  // Create a single Audio element during user gesture context.
-  // Reusing one element across chapters preserves browser activation
-  // so play() is allowed without a fresh gesture for each chapter.
-  tour.audio = new Audio();
-
   var progressEl = document.getElementById('tourProgress');
   progressEl.innerHTML = '';
   tourChapters.forEach(function(ch, i) {
@@ -2657,12 +2652,18 @@ function tourNextChapter() {
     }, fallbackDuration * 1000);
   }
 
-  // Reuse the single Audio element (created in tourStart during user gesture).
-  // Using on* handlers instead of addEventListener avoids listener accumulation.
-  tour.audio.pause();
+  // Swap to the preloaded Audio element for this chapter.
+  // Data is already cached so playback starts immediately.
+  if (tour.audio) {
+    tour.audio.pause();
+    tour.audio.onended = null;
+    tour.audio.onloadedmetadata = null;
+    tour.audio.onerror = null;
+  }
+  tour.audio = tourAudioCache[chapter.id];
+  tour.audio.currentTime = 0;
   tour.audio.onended = function() { tourNextChapter(); };
   tour.audio.onloadedmetadata = function() {
-    // Only use real duration if we haven't already fallen back
     if (!tour.usingFallback && tour.audio.duration > 0) {
       tour.audioDuration = tour.audio.duration;
     }
@@ -2670,7 +2671,6 @@ function tourNextChapter() {
   tour.audio.onerror = function() {
     activateFallback('audio load error');
   };
-  tour.audio.src = chapter.audio;
   tour.audio.play().catch(function(e) {
     activateFallback(e.name || 'play() rejected');
   });
@@ -2734,11 +2734,10 @@ function tourEnd() {
 
   if (tour.audio) {
     tour.audio.pause();
+    tour.audio.currentTime = 0;
     tour.audio.onended = null;
     tour.audio.onloadedmetadata = null;
     tour.audio.onerror = null;
-    tour.audio.removeAttribute('src');
-    tour.audio.load();
     tour.audio = null;
   }
 
@@ -2812,12 +2811,14 @@ document.addEventListener('keydown', function(e) {
   else if (e.key === 'ArrowRight') { e.preventDefault(); tourSkip(); }
 });
 
+// Preload all chapter audio using Audio elements so the browser
+// caches the data with the same fetch mode that playback will use.
+var tourAudioCache = {};
 tourChapters.forEach(function(ch) {
-  var link = document.createElement('link');
-  link.rel = 'prefetch';
-  link.href = ch.audio;
-  link.as = 'audio';
-  document.head.appendChild(link);
+  var a = new Audio();
+  a.preload = 'auto';
+  a.src = ch.audio;
+  tourAudioCache[ch.id] = a;
 });
 </script>
 </body>
