@@ -2591,6 +2591,11 @@ function tourStart() {
   tour.currentChapter = -1;
   document.body.classList.add('tour-active');
 
+  // Create a single Audio element during user gesture context.
+  // Reusing one element across chapters preserves browser activation
+  // so play() is allowed without a fresh gesture for each chapter.
+  tour.audio = new Audio();
+
   var progressEl = document.getElementById('tourProgress');
   progressEl.innerHTML = '';
   tourChapters.forEach(function(ch, i) {
@@ -2630,45 +2635,44 @@ function tourNextChapter() {
   tour.charEls = blurbEl.querySelectorAll('.tour-char');
   tour.audioDuration = 0;
 
-  if (tour.audio) {
-    tour.audio.pause();
-    tour.audio.removeAttribute('src');
-    tour.audio.load();
-  }
   // Estimate a fallback duration for text reveal when audio is unavailable
   // ~140 words per minute reading pace
   var wordCount = chapter.caption.split(/\s+/).length;
   var fallbackDuration = Math.max(8, (wordCount / 140) * 60 + 2);
   tour.fallbackStart = 0;
   tour.usingFallback = false;
+  var fallbackScheduled = false;
 
-  tour.audio = new Audio(chapter.audio);
-  tour.audio.addEventListener('ended', function() { tourNextChapter(); });
-  tour.audio.addEventListener('loadedmetadata', function() {
-    // Audio loaded successfully — use real duration
-    tour.usingFallback = false;
-  });
-  tour.audio.addEventListener('error', function() {
-    // Audio unavailable — fall back to timed text reveal
+  function activateFallback(reason) {
+    if (fallbackScheduled) return; // prevent duplicate timeouts
+    fallbackScheduled = true;
     tour.usingFallback = true;
     tour.audioDuration = fallbackDuration;
     tour.fallbackStart = performance.now() / 1000;
-    // Auto-advance after fallback duration
+    console.warn('Tour audio fallback activated:', reason);
     setTimeout(function() {
       if (tour.active && tour.currentChapter === tourChapters.indexOf(chapter)) {
         tourNextChapter();
       }
     }, fallbackDuration * 1000);
-  });
-  tour.audio.play().catch(function() {
-    tour.usingFallback = true;
-    tour.audioDuration = fallbackDuration;
-    tour.fallbackStart = performance.now() / 1000;
-    setTimeout(function() {
-      if (tour.active && tour.currentChapter === tourChapters.indexOf(chapter)) {
-        tourNextChapter();
-      }
-    }, fallbackDuration * 1000);
+  }
+
+  // Reuse the single Audio element (created in tourStart during user gesture).
+  // Using on* handlers instead of addEventListener avoids listener accumulation.
+  tour.audio.pause();
+  tour.audio.onended = function() { tourNextChapter(); };
+  tour.audio.onloadedmetadata = function() {
+    // Only use real duration if we haven't already fallen back
+    if (!tour.usingFallback && tour.audio.duration > 0) {
+      tour.audioDuration = tour.audio.duration;
+    }
+  };
+  tour.audio.onerror = function() {
+    activateFallback('audio load error');
+  };
+  tour.audio.src = chapter.audio;
+  tour.audio.play().catch(function(e) {
+    activateFallback(e.name || 'play() rejected');
   });
 
   tourTick();
@@ -2730,6 +2734,9 @@ function tourEnd() {
 
   if (tour.audio) {
     tour.audio.pause();
+    tour.audio.onended = null;
+    tour.audio.onloadedmetadata = null;
+    tour.audio.onerror = null;
     tour.audio.removeAttribute('src');
     tour.audio.load();
     tour.audio = null;
