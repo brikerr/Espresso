@@ -231,9 +231,10 @@
   .chip.crema { color: var(--secondary); }
   .chip.crema.on { background: transparent; border-color: var(--secondary); }
   .chip.crema:not(.on) { color: var(--text-muted); }
+  /* TEMPORARILY HIDDEN – export & record disabled */
   .capture-btns {
     position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-    display: flex; gap: 8px;
+    display: none; gap: 8px;
   }
   .cap-btn {
     display: inline-flex; align-items: center; gap: 4px;
@@ -2432,6 +2433,7 @@ var tourAction = {
 // PNG EXPORT
 // ============================================================
 document.getElementById('exportPNG').addEventListener('click', function() {
+  return; // TEMPORARILY DISABLED
   var dpr = window.devicePixelRatio || 1;
   var rect2d = canvas.getBoundingClientRect();
   var offscreen = document.createElement('canvas');
@@ -2487,6 +2489,7 @@ document.getElementById('exportPNG').addEventListener('click', function() {
 var isRecording = false;
 
 document.getElementById('recordBtn').addEventListener('click', function() {
+  return; // TEMPORARILY DISABLED
   if (tour.active || isRecording) return;
   if (typeof MediaRecorder === 'undefined') {
     alert('MediaRecorder is not supported in this browser.');
