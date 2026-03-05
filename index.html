@@ -2205,6 +2205,7 @@ ambianceBtn.addEventListener('click', function() {
 });
 
 function startAmbiance() {
+  ambianceAudio.volume = ambianceMaxVolume;
   ambianceAudio.play().catch(function() {});
   ambiancePlaying = true;
   ambianceBtn.classList.add('ambiance-on');
@@ -2217,6 +2218,51 @@ function stopAmbiance() {
   ambiancePlaying = false;
   ambianceBtn.classList.remove('ambiance-on');
   ambianceBtn.querySelector('.material-symbols-outlined').textContent = 'coffee';
+}
+
+var ambianceFadeTimer = null;
+var ambianceMaxVolume = 0.35;
+
+function fadeAmbianceIn(targetVol, duration, callback) {
+  clearInterval(ambianceFadeTimer);
+  ambianceAudio.volume = 0;
+  ambianceAudio.play().catch(function() {});
+  ambiancePlaying = true;
+  var steps = 30;
+  var stepTime = (duration * 1000) / steps;
+  var vol = 0;
+  var inc = targetVol / steps;
+  ambianceFadeTimer = setInterval(function() {
+    vol += inc;
+    if (vol >= targetVol) {
+      vol = targetVol;
+      clearInterval(ambianceFadeTimer);
+      ambianceFadeTimer = null;
+      if (callback) callback();
+    }
+    ambianceAudio.volume = vol;
+  }, stepTime);
+}
+
+function fadeAmbianceOut(duration, callback) {
+  clearInterval(ambianceFadeTimer);
+  var steps = 30;
+  var stepTime = (duration * 1000) / steps;
+  var vol = ambianceAudio.volume;
+  var dec = vol / steps;
+  ambianceFadeTimer = setInterval(function() {
+    vol -= dec;
+    if (vol <= 0) {
+      vol = 0;
+      clearInterval(ambianceFadeTimer);
+      ambianceFadeTimer = null;
+      ambianceAudio.pause();
+      ambianceAudio.currentTime = 0;
+      ambiancePlaying = false;
+      if (callback) callback();
+    }
+    ambianceAudio.volume = vol;
+  }, stepTime);
 }
 
 // ============================================================
@@ -2574,7 +2620,6 @@ document.getElementById('recordBtn').addEventListener('click', function() {
 // ============================================================
 function tourStart() {
   if (tour.active) return;
-  // Stop cafe ambiance during narration
   tour.ambianceWasPlaying = ambiancePlaying;
   if (ambiancePlaying) stopAmbiance();
 
@@ -2603,7 +2648,15 @@ function tourStart() {
     progressEl.appendChild(pip);
   });
 
-  tourNextChapter();
+  // Play cafe ambiance for 5 seconds before narration begins
+  fadeAmbianceIn(ambianceMaxVolume, 1.5, function() {
+    setTimeout(function() {
+      fadeAmbianceOut(1.5, function() {
+        ambianceAudio.volume = ambianceMaxVolume;
+        tourNextChapter();
+      });
+    }, 2000);
+  });
 }
 
 function tourNextChapter() {
@@ -2752,8 +2805,16 @@ function tourEnd() {
   tour.orbiting = false;
   puck3dContainer.style.opacity = '';
 
-  // Resume cafe ambiance if it was playing before the tour
-  if (tour.ambianceWasPlaying) startAmbiance();
+  // Play cafe ambiance for 10 seconds after narration ends, then fade out
+  fadeAmbianceIn(ambianceMaxVolume, 2, function() {
+    setTimeout(function() {
+      fadeAmbianceOut(2.5, function() {
+        ambianceAudio.volume = ambianceMaxVolume;
+        // If ambiance was on before tour, restart it normally
+        if (tour.ambianceWasPlaying) startAmbiance();
+      });
+    }, 5500);
+  });
 
   var blurbEl = document.querySelector('.coffee-blurb');
   blurbEl.innerHTML = tour.blurbOriginalHTML;
